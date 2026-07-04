@@ -39,7 +39,8 @@
                 <li class="gk-cart-line" data-line="{{ forloop.index }}" data-key="{{ item.key }}">
                   <a class="gk-cart-thumb" href="{{ item.url }}">
                     {% if item.image %}
-                      {{ item.image | image_url: width: 160 | image_tag: loading: 'lazy', width: 80, height: 80, alt: item.title | escape }}
+                      {%- assign drawer_item_alt = item.title | escape -%}
+                      {{ item.image | image_url: width: 160 | image_tag: loading: 'eager', width: 80, height: 80, alt: drawer_item_alt }}
                     {% else %}
                       <span class="gk-cart-thumb-crest">{{ 'gk-shield-2c.svg' | inline_asset_content }}</span>
                     {% endif %}
