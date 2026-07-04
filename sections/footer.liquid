@@ -8,10 +8,9 @@
   <hr class="gk-pride-rule gk-footer-rule">
   <div class="gk-footer-main">
     <div class="gk-footer-brand">
-      <div class="gk-footer-lockup">
-        {{ 'gk-shield-inv.svg' | inline_asset_content }}
-        <span class="gk-footer-name">{{ section.settings.wordmark | default: shop.name }}</span>
-      </div>
+      <a href="{{ routes.root_url }}" class="gk-footer-lockup" aria-label="{{ shop.name }}">
+        <img src="{{ 'gk-logo-horizontal.svg' | asset_url }}" alt="{{ shop.name | escape }}" width="271" height="105">
+      </a>
       {% if section.settings.blurb != blank %}
         <p class="gk-footer-blurb">{{ section.settings.blurb }}</p>
       {% endif %}
@@ -63,12 +62,8 @@
     display: flex; flex-wrap: wrap; gap: 40px; justify-content: space-between;
   }
   .gk-footer-brand { max-width: 330px; min-width: 230px; }
-  .gk-footer-lockup { display: flex; align-items: center; gap: 12px; }
-  .gk-footer-lockup svg { height: 46px; width: auto; }
-  .gk-footer-name {
-    font-family: var(--font-wordmark); color: #fff; font-size: 20px;
-    letter-spacing: -.05em; text-transform: uppercase; line-height: 1;
-  }
+  .gk-footer-lockup { display: inline-flex; align-items: center; text-decoration: none; }
+  .gk-footer-lockup img { height: 52px; width: auto; display: block; }
   .gk-footer-blurb { margin: 16px 0 18px; font-size: 14px; line-height: 1.6; color: var(--navy-200); }
   .gk-footer-social { display: flex; gap: 10px; }
   .gk-footer-social a {

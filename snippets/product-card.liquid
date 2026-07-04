@@ -96,9 +96,9 @@
         {{ product.price | money }}
       </span>
     </div>
+    {%- if color_option -%}
     <div class="gk-pcard-swatches">
-      {%- if color_option -%}
-        {%- for value in color_option.values limit: 4 -%}
+        {%- for value in color_option.values limit: 5 -%}
           {%- assign c = value | downcase -%}
           {%- liquid
             assign hex = '#5d6473'
@@ -120,14 +120,10 @@
               assign hex = '#2faa6a'
             endif
           -%}
-          <span class="gk-swatch" style="background:{{ hex }}" title="{{ value }}"></span>
+          <span class="gk-swatch" style="background:{{ hex }}" title="{{ value | escape }}"></span>
         {%- endfor -%}
-      {%- else -%}
-        <span class="gk-swatch" style="background:var(--navy-700)"></span>
-        <span class="gk-swatch" style="background:var(--paper-2)"></span>
-        <span class="gk-swatch" style="background:var(--gold-500)"></span>
-      {%- endif -%}
     </div>
+    {%- endif -%}
   </a>
 </div>
 

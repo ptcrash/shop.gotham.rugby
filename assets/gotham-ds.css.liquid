@@ -145,7 +145,10 @@ body.gk {
   margin: 0;
 }
 .gk ::selection { background: var(--gold-500); color: var(--navy-700); }
-.gk a { color: inherit; }
+/* Reset link color to inherit at ZERO-ish specificity (:where) so single-class
+   component rules (.gk-navlink, .gk-btn-*) always win instead of being
+   overridden into the dark body color. */
+.gk :where(a) { color: inherit; }
 
 /* Brand utilities */
 .gk-athletic {
