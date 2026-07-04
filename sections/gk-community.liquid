@@ -1,0 +1,87 @@
+{% comment %}
+  Gotham Knights homepage community grid — "On the pitch & in the feed".
+  A 6-up thumbnail wall on deep navy with a follow CTA. Image blocks optional;
+  empty slots fall back to branded pattern tiles.
+{% endcomment %}
+
+<section class="gk-community full-width">
+  <div class="gk-band-inner">
+    <div class="gk-band-head">
+      <div>
+        {% if section.settings.eyebrow != blank %}<div class="gk-eyebrow-gold gk-eyebrow-onnavy">{{ section.settings.eyebrow }}</div>{% endif %}
+        <h2 class="gk-community-title">{{ section.settings.heading }}</h2>
+      </div>
+      {% if section.settings.handle != blank %}
+        <a class="gk-btn gk-btn-outline-light gk-community-follow" href="{{ section.settings.follow_url | default: '#' }}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><path d="M17.5 6.5h.01"></path></svg>
+          Follow {{ section.settings.handle }}
+        </a>
+      {% endif %}
+    </div>
+
+    <div class="gk-community-grid">
+      {% assign styles = 'photo,dark,stripes,gold,light,ring' | split: ',' %}
+      {% for i in (0..5) %}
+        {% assign block = section.blocks[i] %}
+        {% assign style = styles[i] %}
+        {% if block and block.settings.image %}
+          <div class="gk-thumb" {{ block.shopify_attributes }}>
+            {{ block.settings.image | image_url: width: 300 | image_tag: loading: 'lazy', class: 'gk-thumb-photo', alt: '' }}
+          </div>
+        {% elsif style == 'photo' %}
+          <div class="gk-thumb"><img class="gk-thumb-photo" src="{{ 'intro-to-rugby.jpg' | asset_url }}" alt="Gotham Knights matchday" width="300" height="300"></div>
+        {% elsif style == 'dark' %}
+          <div class="gk-thumb gk-thumb-dark"><img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150"></div>
+        {% elsif style == 'stripes' %}
+          <div class="gk-thumb gk-stripes" style="--gk-stripe-size:16px"></div>
+        {% elsif style == 'gold' %}
+          <div class="gk-thumb gk-thumb-gold"><span class="gk-athletic">GK</span></div>
+        {% elsif style == 'light' %}
+          <div class="gk-thumb gk-thumb-light"><img src="{{ 'gk-shield-2c.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150"></div>
+        {% else %}
+          <div class="gk-thumb gk-thumb-ring"><img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150"></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+  .gk-community { background: var(--navy-800); padding: 60px 50px; }
+  .gk-community-title { margin: 0; font: 800 30px var(--font-heading); color: #fff; letter-spacing: -.01em; }
+  .gk-community-follow { font-size: 13px; padding: 12px 20px; border-width: 2px; border-color: rgba(255,255,255,.4); gap: 9px; }
+  .gk-community-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .gk-thumb { aspect-ratio: 1/1; border-radius: 10px; overflow: hidden; display: grid; place-items: center; }
+  .gk-thumb-photo { width: 100%; height: 100%; object-fit: cover; }
+  .gk-thumb-dark { background-color: var(--navy-700); background-image: radial-gradient(var(--gold-500) 1.5px, transparent 1.7px); background-size: 11px 11px; }
+  .gk-thumb-dark img { width: 52%; opacity: .92; }
+  .gk-thumb-light { background-color: var(--paper); background-image: radial-gradient(var(--navy-700) 1.5px, transparent 1.7px); background-size: 11px 11px; }
+  .gk-thumb-light img { width: 54%; }
+  .gk-thumb-gold { background: var(--gold-500); }
+  .gk-thumb-gold span { color: var(--navy-700); font-size: 2rem; }
+  .gk-thumb-ring { border: 3px solid var(--gold-500); background: var(--navy-700); }
+  .gk-thumb-ring img { width: 50%; opacity: .92; }
+  @media (max-width: 860px) {
+    .gk-community { padding: 40px 18px; }
+    .gk-community-grid { grid-template-columns: repeat(3, 1fr); }
+    .gk-community-title { font-size: 22px; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Community grid",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Community" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "On the pitch & in the feed" },
+    { "type": "text", "id": "handle", "label": "Social handle", "default": "@gothamrugby" },
+    { "type": "url", "id": "follow_url", "label": "Follow URL" }
+  ],
+  "blocks": [
+    { "type": "photo", "name": "Photo", "settings": [ { "type": "image_picker", "id": "image", "label": "Image" } ] }
+  ],
+  "max_blocks": 6,
+  "presets": [{ "name": "Community grid" }],
+  "disabled_on": { "groups": ["header", "footer"] }
+}
+{% endschema %}

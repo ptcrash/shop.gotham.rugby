@@ -13,8 +13,22 @@
   "sections": {
     "footer": {
       "type": "footer",
+      "blocks": {
+        "shop": {
+          "type": "link_column",
+          "settings": { "heading": "Shop", "menu": "footer" }
+        },
+        "club": {
+          "type": "link_column",
+          "settings": { "heading": "Club", "menu": "" }
+        },
+        "help": {
+          "type": "link_column",
+          "settings": { "heading": "Help", "menu": "" }
+        }
+      },
+      "block_order": ["shop", "club", "help"],
       "settings": {
-        "menu": "",
         "show_payment_icons": true
       }
     }

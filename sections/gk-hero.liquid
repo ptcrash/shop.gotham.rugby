@@ -1,0 +1,112 @@
+{% comment %}
+  Gotham Knights homepage hero — "Split Kit" direction.
+  Navy angled copy panel on the left, product/crest stand-in on the right.
+{% endcomment %}
+
+{% liquid
+  assign hero_img = section.settings.image
+%}
+
+<section class="gk-hero full-width">
+  <div class="gk-hero-media">
+    {% if hero_img %}
+      {{ hero_img | image_url: width: 900 | image_tag: loading: 'eager', widths: '600,900,1200', class: 'gk-hero-photo', alt: hero_img.alt | default: section.settings.heading | escape }}
+    {% else %}
+      <img src="{{ 'gk-shield-2c.svg' | asset_url }}" alt="{{ section.settings.heading | escape }}" width="150" height="150" class="gk-hero-crest">
+    {% endif %}
+    {% if section.settings.badge != blank %}<span class="gk-hero-badge">{{ section.settings.badge }}</span>{% endif %}
+    {% unless hero_img %}<span class="gk-hero-note">◇ crest stand-in</span>{% endunless %}
+  </div>
+
+  <div class="gk-hero-panel">
+    {% if section.settings.eyebrow != blank %}
+      <div class="gk-hero-eyebrow"><span class="gk-hero-tick"></span>{{ section.settings.eyebrow }}</div>
+    {% endif %}
+    <h1 class="gk-hero-title gk-athletic">{{ section.settings.heading }}</h1>
+    {% if section.settings.subheading != blank %}<p class="gk-hero-sub">{{ section.settings.subheading }}</p>{% endif %}
+    <div class="gk-hero-cta">
+      {% if section.settings.primary_label != blank %}
+        <a class="gk-btn gk-btn-primary" href="{{ section.settings.primary_url | default: '#' }}">{{ section.settings.primary_label }}
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+        </a>
+      {% endif %}
+      {% if section.settings.secondary_label != blank %}
+        <a class="gk-btn gk-btn-outline-light" href="{{ section.settings.secondary_url | default: '#' }}">{{ section.settings.secondary_label }}</a>
+      {% endif %}
+    </div>
+    {% if section.settings.meta != blank %}<div class="gk-hero-meta">{{ section.settings.meta }}</div>{% endif %}
+  </div>
+</section>
+
+{% stylesheet %}
+  .gk-hero { position: relative; min-height: 560px; background: var(--navy-700); overflow: hidden; display: block; }
+  .gk-hero-media {
+    position: absolute; top: 0; right: 0; bottom: 0; width: 46%;
+    background-color: var(--paper);
+    background-image: linear-gradient(285deg, transparent 14%, var(--paper) 90%), radial-gradient(var(--navy-700) 1.5px, transparent 1.7px);
+    background-size: 100% 100%, 11px 11px;
+  }
+  .gk-hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .gk-hero-crest {
+    position: absolute; top: 50%; left: 54%; transform: translate(-50%,-50%);
+    width: 52%; height: auto; filter: drop-shadow(0 14px 30px rgba(7,17,42,.2));
+  }
+  .gk-hero-badge {
+    position: absolute; top: 22px; right: 24px; display: inline-flex; align-items: center;
+    font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: .08em;
+    color: var(--navy-700); background: var(--gold-500); padding: 6px 10px; border-radius: 3px;
+  }
+  .gk-hero-note {
+    position: absolute; left: 26px; bottom: 22px; font: 600 11px var(--font-mono);
+    letter-spacing: .12em; text-transform: uppercase; color: var(--navy-400);
+  }
+  .gk-hero-panel {
+    position: absolute; top: 0; left: 0; bottom: 0; width: 61%; background: var(--navy-700);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 86px) 100%, 0 100%);
+    padding: 48px 140px 48px 50px; display: flex; flex-direction: column; justify-content: center;
+  }
+  .gk-hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 11px; color: var(--gold-400);
+    font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: .16em;
+  }
+  .gk-hero-tick { width: 28px; height: 3px; background: var(--gold-500); border-radius: 99px; }
+  .gk-hero-title { color: #fff; font-size: 3.7rem; margin: 16px 0 0; }
+  .gk-hero-title em, .gk-hero-title .accent { color: var(--gold-500); font-style: normal; }
+  .gk-hero-sub { color: var(--navy-100); font-size: 1.1rem; line-height: 1.5; max-width: 40ch; margin: 18px 0 28px; }
+  .gk-hero-cta { display: flex; gap: 13px; flex-wrap: wrap; }
+  .gk-hero-meta {
+    margin-top: 22px; font: 600 12px var(--font-mono); letter-spacing: .1em;
+    text-transform: uppercase; color: var(--navy-200);
+  }
+  @media (max-width: 860px) {
+    .gk-hero { min-height: 0; }
+    .gk-hero-media { position: relative; width: 100%; height: 250px; }
+    .gk-hero-crest { position: absolute; left: 50%; height: 74%; width: auto; }
+    .gk-hero-panel {
+      position: relative; width: 100%; clip-path: none; padding: 30px 20px 32px;
+    }
+    .gk-hero-title { font-size: 2.15rem; }
+    .gk-hero-cta { flex-direction: column; }
+    .gk-hero-cta .gk-btn { width: 100%; justify-content: center; box-sizing: border-box; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Hero",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "New drop · Core Essentials" },
+    { "type": "textarea", "id": "heading", "label": "Heading", "default": "Built for the pitch. Made for the city." },
+    { "type": "textarea", "id": "subheading", "label": "Subheading", "default": "The Club Crest Tee — heavyweight cotton, an embroidered dragon, built to outlast the season." },
+    { "type": "image_picker", "id": "image", "label": "Hero image (optional — falls back to crest)" },
+    { "type": "text", "id": "badge", "label": "Image badge", "default": "New Drop" },
+    { "type": "text", "id": "primary_label", "label": "Primary button", "default": "Shop the drop" },
+    { "type": "url", "id": "primary_url", "label": "Primary link" },
+    { "type": "text", "id": "secondary_label", "label": "Secondary button", "default": "Explore collection" },
+    { "type": "url", "id": "secondary_url", "label": "Secondary link" },
+    { "type": "text", "id": "meta", "label": "Meta line", "default": "$42 · unisex · S–3XL" }
+  ],
+  "presets": [{ "name": "Hero" }],
+  "disabled_on": { "groups": ["header", "footer"] }
+}
+{% endschema %}

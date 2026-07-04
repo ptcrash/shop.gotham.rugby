@@ -20,13 +20,20 @@
     {% # Load and preload the critical CSS %}
     {{ 'critical.css' | asset_url | stylesheet_tag: preload: true }}
 
+    {% # Gotham Knights design system (tokens, patterns, components) %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="{{ 'gotham-harbour-bold.ttf' | asset_url }}" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="{{ 'gotham-black.otf' | asset_url }}" as="font" type="font/otf" crossorigin>
+    {{ 'gotham-ds.css' | asset_url | stylesheet_tag }}
+
     {% # Social, title, etc. %}
     {% render 'meta-tags' %}
 
     {{ content_for_header }}
   </head>
 
-  <body>
+  <body class="gk">
     {% sections 'header-group' %}
 
     {{ content_for_layout }}

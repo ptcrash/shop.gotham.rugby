@@ -1,0 +1,134 @@
+{% comment %}
+  Gotham Knights "Clean Premium" product card.
+  Ported from the ProductCard component of the Gotham Storefront design.
+
+  Real product imagery is used when present; products without a photo fall back
+  to a branded crest / halftone stand-in (as the design intends before launch).
+
+  @param {product} product - the product to render (required)
+  @param {string}  [label] - eyebrow label (defaults to product.type)
+  @param {string}  [badge] - badge text override (auto-derived from tags otherwise)
+  @param {boolean} [badge_navy] - navy badge instead of gold
+  @param {boolean} [dark] - use the dark crest stand-in when no image (else derived)
+{% endcomment %}
+
+{% liquid
+  assign card_label = label | default: product.type
+  if card_label == blank
+    assign card_label = product.vendor
+  endif
+
+  assign card_badge = badge
+  if card_badge == blank
+    if product.tags contains 'Best-seller'
+      assign card_badge = 'Best-seller'
+      assign badge_navy = true
+    elsif product.tags contains 'New'
+      assign card_badge = 'New'
+    elsif product.tags contains 'Limited'
+      assign card_badge = 'Limited'
+    elsif product.tags contains '25th Anniversary'
+      assign card_badge = '25th Anniversary'
+    endif
+  endif
+
+  comment
+    Alternate the stand-in tone deterministically when no image is set.
+  endcomment
+  assign is_dark = dark
+  unless dark
+    assign parity = product.id | modulo: 2
+    if parity == 0
+      assign is_dark = true
+    else
+      assign is_dark = false
+    endif
+  endunless
+
+  assign color_option = null
+  for opt in product.options_with_values
+    assign opt_down = opt.name | downcase
+    if opt_down == 'color' or opt_down == 'colour'
+      assign color_option = opt
+    endif
+  endfor
+%}
+
+<div class="gk-pcard">
+  <div class="gk-pcard-media">
+    <a class="gk-pcard-imglink" href="{{ product.url }}" aria-label="{{ product.title | escape }}">
+      {% if product.featured_image %}
+        {{ product.featured_image | image_url: width: 600 | image_tag:
+          loading: 'lazy', widths: '280,372,560,600', class: 'gk-pcard-img',
+          alt: product.featured_image.alt | default: product.title | escape }}
+      {% elsif is_dark %}
+        <span class="gk-pcard-standin gk-standin-dark">
+          {{ 'gk-shield-inv.svg' | inline_asset_content }}
+        </span>
+      {% else %}
+        <span class="gk-pcard-standin gk-standin-light">
+          {{ 'gk-shield-2c.svg' | inline_asset_content }}
+        </span>
+      {% endif %}
+    </a>
+
+    {% if card_badge != blank %}
+      <span class="gk-badge {% if badge_navy %}gk-badge-navy{% else %}gk-badge-gold{% endif %}">{{ card_badge }}</span>
+    {% endif %}
+
+    {% form 'product', product, class: 'gk-qa-form' %}
+      <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+      <button type="submit" class="gk-qa" {% unless product.available %}disabled{% endunless %}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+        {% if product.available %}Quick add{% else %}Sold out{% endif %}
+      </button>
+    {% endform %}
+  </div>
+
+  <a class="gk-pcard-body" href="{{ product.url }}">
+    {% if card_label != blank %}<div class="gk-pcard-eyebrow">{{ card_label }}</div>{% endif %}
+    <div class="gk-pcard-row">
+      <h3 class="gk-pcard-title">{{ product.title }}</h3>
+      <span class="gk-pcard-price">
+        {%- if product.compare_at_price > product.price -%}
+          <s class="gk-pcard-was">{{ product.compare_at_price | money }}</s>
+        {%- endif -%}
+        {{ product.price | money }}
+      </span>
+    </div>
+    <div class="gk-pcard-swatches">
+      {%- if color_option -%}
+        {%- for value in color_option.values limit: 4 -%}
+          {%- assign c = value | downcase -%}
+          {%- liquid
+            assign hex = '#5d6473'
+            if c contains 'navy' or c contains 'blue'
+              assign hex = '#0d1d41'
+            elsif c contains 'cream' or c contains 'sand' or c contains 'natural' or c contains 'ivory'
+              assign hex = '#f3ecdc'
+            elsif c contains 'gold' or c contains 'yellow'
+              assign hex = '#fec526'
+            elsif c contains 'white'
+              assign hex = '#ffffff'
+            elsif c contains 'black'
+              assign hex = '#111111'
+            elsif c contains 'grey' or c contains 'gray'
+              assign hex = '#9aa0ac'
+            elsif c contains 'red'
+              assign hex = '#e4453a'
+            elsif c contains 'green'
+              assign hex = '#2faa6a'
+            endif
+          -%}
+          <span class="gk-swatch" style="background:{{ hex }}" title="{{ value }}"></span>
+        {%- endfor -%}
+      {%- else -%}
+        <span class="gk-swatch" style="background:var(--navy-700)"></span>
+        <span class="gk-swatch" style="background:var(--paper-2)"></span>
+        <span class="gk-swatch" style="background:var(--gold-500)"></span>
+      {%- endif -%}
+    </div>
+  </a>
+</div>
+
+{% comment %} Card + badge + swatch + stand-in styles live in gotham-ds.css (shared). {% endcomment %}

@@ -1,50 +1,418 @@
 {% comment %}
-  This section is used in the product template to render product page with
-  media, content, and add-to-cart form.
-
+  Gotham Knights product page (PDP) — gallery, buy panel (variants, size, qty,
+  add to cart), trust row, details accordion, complete-the-kit, sticky buy bar.
   https://shopify.dev/docs/storefronts/themes/architecture/templates/product
 {% endcomment %}
 
-<div class="product-images">
-  {% for image in product.images %}
-    {% render 'image', class: 'product-image', image: image %}
-  {% endfor %}
-</div>
+{% liquid
+  assign current_variant = product.selected_or_first_available_variant
+  assign has_images = product.images.size
+%}
 
-<div class="product-info">
-  <h1>{{ product.title }}</h1>
-  <p>{{ product.price | money }}</p>
-  <p>{{ product.description }}</p>
-</div>
+<div class="gk-pdp">
+  <div class="gk-pdp-crumb full-width">
+    <div class="gk-band-inner">
+      <a href="{{ routes.root_url }}">Home</a> /
+      {% if collection %}<a href="{{ collection.url }}">{{ collection.title }}</a> / {% endif %}
+      <span>{{ product.title }}</span>
+    </div>
+  </div>
 
-<div class="product-form">
-  {% form 'product', product %}
-    {% assign current_variant = product.selected_or_first_available_variant %}
+  <div class="gk-band gk-band-paper full-width">
+    <div class="gk-band-inner">
+      <div class="gk-pdp-grid">
+        {% comment %} ---- Gallery ---- {% endcomment %}
+        <div class="gk-pdp-gallery">
+          <div class="gk-pdp-main" id="gk-pdp-main">
+            {% if has_images > 0 %}
+              {{ product.featured_image | image_url: width: 900 | image_tag: loading: 'eager', widths: '600,900,1200', class: 'gk-pdp-main-img', alt: product.featured_image.alt | default: product.title | escape }}
+            {% else %}
+              <span class="gk-pcard-standin gk-standin-dark gk-pdp-standin">{{ 'gk-shield-inv.svg' | inline_asset_content }}</span>
+            {% endif %}
+            {% if product.tags contains 'Best-seller' %}<span class="gk-badge gk-badge-navy gk-pdp-badge">Best-seller</span>{% endif %}
+          </div>
 
-    <select name="id">
-      {% for variant in product.variants %}
-        <option
-          value="{{ variant.id }}"
-          {% if variant == current_variant %}
-            selected="selected"
+          {% if has_images > 1 %}
+            <div class="gk-pdp-thumbs">
+              {% for image in product.images limit: 5 %}
+                <button type="button" class="gk-pdp-thumb{% if forloop.first %} is-active{% endif %}" data-full="{{ image | image_url: width: 900 }}" aria-label="View image {{ forloop.index }}">
+                  {{ image | image_url: width: 160 | image_tag: loading: 'lazy', alt: '' }}
+                </button>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="gk-pdp-photo-note">◇ product photography goes here</div>
           {% endif %}
-        >
-          {{ variant.title }} - {{ variant.price | money }}
-        </option>
-      {% endfor %}
-    </select>
+        </div>
 
-    <input type="text" name="quantity" min="1" value="1">
+        {% comment %} ---- Buy panel ---- {% endcomment %}
+        <div class="gk-pdp-buy">
+          {% if product.type != blank %}<div class="gk-pdp-eyebrow">{{ product.type }}</div>{% endif %}
+          <h1 class="gk-pdp-title">{{ product.title }}</h1>
 
-    <input type="submit" value="Add to cart">
-    {{ form | payment_button }}
-  {% endform %}
+          <div class="gk-pdp-pricerow">
+            <span class="gk-pdp-price" id="gk-price">{{ current_variant.price | money }}</span>
+            {% if product.metafields.reviews.rating.value != blank %}
+              <span class="gk-pdp-rating">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--gold-500)" stroke="none"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                <span class="gk-pdp-rating-val">{{ product.metafields.reviews.rating.value }}</span>
+                <span class="gk-pdp-rating-count">({{ product.metafields.reviews.rating_count.value }} reviews)</span>
+              </span>
+            {% endif %}
+          </div>
+
+          {% if product.description != blank %}
+            <p class="gk-pdp-lead">{{ product.description | strip_html | truncatewords: 34 }}</p>
+          {% endif %}
+
+          {% form 'product', product, id: 'gk-add-form', class: 'gk-pdp-form' %}
+            <input type="hidden" name="id" value="{{ current_variant.id }}" id="gk-variant-id">
+
+            {% unless product.has_only_default_variant %}
+              {% for option in product.options_with_values %}
+                {% assign opt_down = option.name | downcase %}
+                <div class="gk-pdp-option" data-option-index="{{ forloop.index0 }}">
+                  {% if opt_down == 'color' or opt_down == 'colour' %}
+                    <div class="gk-pdp-optlabel">{{ option.name }}: <span class="gk-pdp-optval">{{ option.selected_value }}</span></div>
+                    <div class="gk-pdp-swatches">
+                      {% for value in option.values %}
+                        {% assign c = value | downcase %}
+                        {% liquid
+                          assign hex = '#5d6473'
+                          if c contains 'navy' or c contains 'blue'
+                            assign hex = '#0d1d41'
+                          elsif c contains 'cream' or c contains 'sand' or c contains 'natural' or c contains 'ivory'
+                            assign hex = '#f3ecdc'
+                          elsif c contains 'gold' or c contains 'yellow'
+                            assign hex = '#fec526'
+                          elsif c contains 'white'
+                            assign hex = '#ffffff'
+                          elsif c contains 'black'
+                            assign hex = '#111111'
+                          elsif c contains 'grey' or c contains 'gray'
+                            assign hex = '#9aa0ac'
+                          elsif c contains 'red'
+                            assign hex = '#e4453a'
+                          elsif c contains 'green'
+                            assign hex = '#2faa6a'
+                          endif
+                        %}
+                        <button type="button" class="gk-pdp-swatch{% if option.selected_value == value %} is-active{% endif %}" style="background:{{ hex }}" data-option="{{ forloop.index }}" data-value="{{ value | escape }}" aria-label="{{ value | escape }}"></button>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <div class="gk-pdp-optrow">
+                      <span class="gk-pdp-optname">{{ option.name }}</span>
+                      {% if opt_down == 'size' %}<a class="gk-tlink gk-pdp-sizeguide" href="#gk-size-guide">Size guide</a>{% endif %}
+                    </div>
+                    <div class="gk-pdp-sizes">
+                      {% for value in option.values %}
+                        <button type="button" class="gk-pdp-size{% if option.selected_value == value %} is-active{% endif %}" data-option="{{ forloop.index }}" data-value="{{ value | escape }}">{{ value }}</button>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            {% endunless %}
+
+            <div class="gk-pdp-buyrow">
+              <div class="gk-qty">
+                <button type="button" class="gk-qty-btn" data-qty="-1" aria-label="Decrease">−</button>
+                <input type="number" name="quantity" id="gk-qty" value="1" min="1" aria-label="Quantity">
+                <button type="button" class="gk-qty-btn" data-qty="1" aria-label="Increase">+</button>
+              </div>
+              <button type="submit" class="gk-btn gk-btn-primary gk-pdp-add" {% unless product.available %}disabled{% endunless %}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                {% if product.available %}Add to cart · <span id="gk-add-price">{{ current_variant.price | money_without_trailing_zeros }}</span>{% else %}Sold out{% endif %}
+              </button>
+            </div>
+          {% endform %}
+
+          <div class="gk-pdp-trust">
+            {% for block in section.blocks %}
+              {% if block.type == 'trust' %}
+                <div class="gk-pdp-trust-row" {{ block.shopify_attributes }}>
+                  <span class="gk-pdp-trust-icon">{% render 'gk-icon', name: block.settings.icon %}</span>
+                  {{ block.settings.text }}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          {% if section.settings.support_note != blank %}
+            <p class="gk-pdp-support">{{ section.settings.support_note }}</p>
+          {% endif %}
+
+          <div class="gk-pdp-accordion">
+            <details open>
+              <summary>Description
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+              </summary>
+              <div class="gk-pdp-acc-body">{{ product.description }}</div>
+            </details>
+            {% for block in section.blocks %}
+              {% if block.type == 'detail' %}
+                <details {{ block.shopify_attributes }}>
+                  <summary>{{ block.settings.heading }}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+                  </summary>
+                  <div class="gk-pdp-acc-body">{{ block.settings.body }}</div>
+                </details>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% comment %} ---- Complete the kit ---- {% endcomment %}
+  {% assign has_related = false %}
+  {% if product.metafields.custom.related_products.value != blank %}{% assign has_related = true %}{% endif %}
+  {% if collection and collection.products.size > 1 %}{% assign has_related = true %}{% endif %}
+  {% if has_related %}
+    <div class="gk-band gk-band-sunken full-width">
+      <div class="gk-band-inner">
+        <div class="gk-band-head">
+          <div>
+            <div class="gk-eyebrow-gold">Complete the kit</div>
+            <h2 class="gk-band-title">Goes with</h2>
+          </div>
+        </div>
+        <div class="gk-pgrid">
+          {% assign shown = 0 %}
+          {% if product.metafields.custom.related_products.value != blank %}
+            {% for rel in product.metafields.custom.related_products.value limit: 4 %}
+              {% render 'product-card', product: rel %}
+              {% assign shown = shown | plus: 1 %}
+            {% endfor %}
+          {% endif %}
+          {% if shown == 0 and collection %}
+            {% for rel in collection.products limit: 4 %}
+              {% unless rel.id == product.id %}{% render 'product-card', product: rel %}{% endunless %}
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% comment %} ---- Sticky buy bar ---- {% endcomment %}
+  <div class="gk-stickybar full-width" id="gk-stickybar" hidden>
+    <div class="gk-band-inner gk-stickybar-inner">
+      <div class="gk-stickybar-info">
+        <span class="gk-stickybar-thumb">
+          {% if has_images > 0 %}{{ product.featured_image | image_url: width: 92 | image_tag: alt: '' }}
+          {% else %}<img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" width="46" height="46">{% endif %}
+        </span>
+        <span>
+          <span class="gk-stickybar-title">{{ product.title }}</span>
+          <span class="gk-stickybar-meta" id="gk-stickybar-meta">{{ current_variant.title }} · {{ current_variant.price | money }}</span>
+        </span>
+      </div>
+      <button type="submit" form="gk-add-form" class="gk-btn gk-btn-primary gk-stickybar-add">Add to cart</button>
+    </div>
+  </div>
 </div>
+
+<script>
+  (function () {
+    var variants = {{ product.variants | json }};
+    var options = {{ product.options | json }};
+    var form = document.getElementById('gk-add-form');
+    if (!form) return;
+    var idInput = document.getElementById('gk-variant-id');
+    var priceEl = document.getElementById('gk-price');
+    var addPriceEl = document.getElementById('gk-add-price');
+    var stickyMeta = document.getElementById('gk-stickybar-meta');
+    var selected = {};
+
+    // seed selected options from the initially active buttons
+    form.querySelectorAll('.gk-pdp-swatch.is-active, .gk-pdp-size.is-active').forEach(function (b) {
+      selected[b.dataset.option] = b.dataset.value;
+    });
+
+    function money(cents) {
+      return '$' + (cents / 100).toFixed(2);
+    }
+    function findVariant() {
+      return variants.find(function (v) {
+        return options.every(function (name, i) {
+          var key = String(i + 1);
+          return selected[key] === undefined || v.options[i] === selected[key];
+        });
+      });
+    }
+    function update() {
+      var v = findVariant();
+      if (!v) return;
+      idInput.value = v.id;
+      if (priceEl) priceEl.textContent = money(v.price);
+      if (addPriceEl) addPriceEl.textContent = money(v.price);
+      if (stickyMeta) stickyMeta.textContent = v.title + ' · ' + money(v.price);
+    }
+
+    form.querySelectorAll('.gk-pdp-swatch, .gk-pdp-size').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var group = btn.parentElement;
+        group.querySelectorAll('.is-active').forEach(function (el) { el.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        selected[btn.dataset.option] = btn.dataset.value;
+        var optWrap = btn.closest('.gk-pdp-option');
+        var valLabel = optWrap && optWrap.querySelector('.gk-pdp-optval');
+        if (valLabel) valLabel.textContent = btn.dataset.value;
+        update();
+      });
+    });
+
+    form.querySelectorAll('.gk-qty-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var input = document.getElementById('gk-qty');
+        var next = Math.max(1, (parseInt(input.value, 10) || 1) + parseInt(btn.dataset.qty, 10));
+        input.value = next;
+      });
+    });
+
+    // gallery thumb swap
+    document.querySelectorAll('.gk-pdp-thumb').forEach(function (t) {
+      t.addEventListener('click', function () {
+        var main = document.querySelector('.gk-pdp-main-img');
+        if (main && t.dataset.full) main.src = t.dataset.full;
+        document.querySelectorAll('.gk-pdp-thumb.is-active').forEach(function (a) { a.classList.remove('is-active'); });
+        t.classList.add('is-active');
+      });
+    });
+
+    // sticky buy bar on scroll past the main add button
+    var bar = document.getElementById('gk-stickybar');
+    var addBtn = form.querySelector('.gk-pdp-add');
+    if (bar && addBtn && 'IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        bar.hidden = entries[0].isIntersecting;
+      }).observe(addBtn);
+    }
+  })();
+</script>
+
+{% stylesheet %}
+  .gk-pdp-crumb { background: var(--paper); border-bottom: 1px solid var(--border); padding: 13px 50px; }
+  .gk-pdp-crumb .gk-band-inner { font: 600 12px var(--font-mono); letter-spacing: .03em; color: var(--ink-500); }
+  .gk-pdp-crumb a { color: var(--ink-500); text-decoration: none; }
+  .gk-pdp-crumb span { color: var(--navy-700); }
+
+  .gk-pdp-grid { display: grid; grid-template-columns: 1.08fr .92fr; gap: 48px; align-items: start; }
+  .gk-pdp-main { position: relative; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; background: var(--paper-2); display: grid; place-items: center; }
+  .gk-pdp-main-img { width: 100%; height: 100%; object-fit: cover; }
+  .gk-pdp-standin { width: 100%; height: 100%; }
+  .gk-pdp-standin svg { width: 46%; }
+  .gk-pdp-badge { top: 16px; left: 16px; font-size: 11px; padding: 6px 10px; }
+  .gk-pdp-thumbs { display: flex; gap: 12px; margin-top: 12px; }
+  .gk-pdp-thumb { flex: 1; aspect-ratio: 1/1; border-radius: 9px; overflow: hidden; border: 1px solid var(--border-strong); background: var(--paper-2); cursor: pointer; padding: 0; }
+  .gk-pdp-thumb.is-active { border: 2px solid var(--navy-700); }
+  .gk-pdp-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .gk-pdp-photo-note { font: 600 11px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-400); margin-top: 12px; }
+
+  .gk-pdp-eyebrow { font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: .14em; color: var(--gold-700); margin-bottom: 10px; }
+  .gk-pdp-title { margin: 0; font: 800 2.2rem/1.05 var(--font-heading); color: var(--navy-700); letter-spacing: -.01em; }
+  .gk-pdp-pricerow { display: flex; align-items: center; gap: 14px; margin: 14px 0 0; }
+  .gk-pdp-price { font: 600 1.5rem var(--font-mono); color: var(--navy-700); }
+  .gk-pdp-rating { display: inline-flex; align-items: center; gap: 6px; }
+  .gk-pdp-rating-val { font: 600 13px var(--font-mono); color: var(--navy-700); }
+  .gk-pdp-rating-count { font: 500 13px var(--font-body); color: var(--ink-500); }
+  .gk-pdp-lead { font: 400 16px/1.6 var(--font-body); color: var(--ink-700); margin: 18px 0 24px; max-width: 46ch; }
+
+  .gk-pdp-form { margin: 0; }
+  .gk-pdp-option { margin-bottom: 22px; }
+  .gk-pdp-optlabel, .gk-pdp-optname { font: 700 12px var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--navy-700); margin-bottom: 11px; }
+  .gk-pdp-optval { color: var(--ink-500); }
+  .gk-pdp-optrow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
+  .gk-pdp-sizeguide { font-size: 12px; }
+  .gk-pdp-swatches { display: flex; gap: 12px; }
+  .gk-pdp-swatch { width: 34px; height: 34px; border-radius: 99px; border: 1px solid rgba(0,0,0,.15); cursor: pointer; }
+  .gk-pdp-swatch.is-active { border: 0; box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--gold-500); }
+  .gk-pdp-sizes { display: flex; gap: 9px; flex-wrap: wrap; }
+  .gk-pdp-size { min-width: 48px; height: 46px; padding: 0 12px; border: 1.5px solid var(--border-strong); border-radius: 6px; background: #fff; font: 600 14px var(--font-mono); color: var(--navy-700); cursor: pointer; }
+  .gk-pdp-size.is-active { border: 2px solid var(--navy-700); background: var(--navy-700); color: #fff; }
+  .gk-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  .gk-pdp-buyrow { display: flex; gap: 12px; align-items: stretch; margin-bottom: 18px; }
+  .gk-qty { display: flex; align-items: center; border: 1.5px solid var(--border-strong); border-radius: 6px; overflow: hidden; }
+  .gk-qty-btn { width: 44px; height: 52px; border: 0; background: #fff; font-size: 20px; color: var(--navy-700); cursor: pointer; }
+  .gk-qty input { width: 40px; text-align: center; border: 0; font: 600 15px var(--font-mono); color: var(--navy-700); -moz-appearance: textfield; }
+  .gk-qty input::-webkit-outer-spin-button, .gk-qty input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .gk-pdp-add { flex: 1; justify-content: center; }
+
+  .gk-pdp-trust { display: flex; flex-direction: column; gap: 11px; padding: 18px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+  .gk-pdp-trust-row { display: flex; align-items: center; gap: 11px; font: 500 13.5px var(--font-body); color: var(--ink-700); }
+  .gk-pdp-trust-icon { color: var(--navy-600); display: inline-flex; }
+  .gk-pdp-support { font: 500 13px/1.5 var(--font-body); color: var(--ink-500); margin: 0; }
+
+  .gk-pdp-accordion { margin-top: 22px; border-top: 1px solid var(--border); }
+  .gk-pdp-accordion details { border-bottom: 1px solid var(--border); }
+  .gk-pdp-accordion summary { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; cursor: pointer; font: 700 14px var(--font-body); color: var(--navy-700); list-style: none; }
+  .gk-pdp-accordion summary::-webkit-details-marker { display: none; }
+  .gk-pdp-accordion summary svg { transition: transform var(--dur-base) var(--ease-standard); }
+  .gk-pdp-accordion details[open] summary svg { transform: rotate(180deg); }
+  .gk-pdp-acc-body { font: 400 14.5px/1.65 var(--font-body); color: var(--ink-700); padding: 0 0 16px; max-width: 56ch; }
+
+  .gk-band-sunken { padding: 56px 50px; }
+
+  .gk-stickybar { position: sticky; bottom: 0; z-index: 30; background: var(--navy-700); border-top: 2px solid var(--gold-500); padding: 14px 50px; }
+  .gk-stickybar-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+  .gk-stickybar-info { display: flex; align-items: center; gap: 14px; }
+  .gk-stickybar-thumb { width: 46px; height: 46px; border-radius: 8px; overflow: hidden; background: var(--navy-600); display: grid; place-items: center; flex: none; }
+  .gk-stickybar-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .gk-stickybar-title { display: block; font: 700 14px var(--font-heading); color: #fff; }
+  .gk-stickybar-meta { display: block; font: 600 12px var(--font-mono); color: var(--navy-200); }
+  .gk-stickybar-add { font-size: 14px; padding: 13px 26px; }
+
+  @media (max-width: 860px) {
+    .gk-pdp-crumb { padding: 11px 18px; }
+    .gk-pdp-grid { grid-template-columns: 1fr; gap: 24px; }
+    .gk-pdp-title { font-size: 1.7rem; }
+    .gk-band-sunken { padding: 32px 18px; }
+    .gk-stickybar { padding: 12px 16px; }
+    .gk-stickybar-thumb { display: none; }
+  }
+{% endstylesheet %}
 
 {% schema %}
 {
   "name": "t:general.product",
-  "settings": [],
+  "settings": [
+    { "type": "textarea", "id": "support_note", "label": "Support note", "default": "Your purchase supports Gotham Rugby — kit, pitch time, and travel for NYC's inclusive rugby club. (Not a tax-deductible donation.)" }
+  ],
+  "blocks": [
+    {
+      "type": "trust",
+      "name": "Trust row",
+      "settings": [
+        { "type": "select", "id": "icon", "label": "Icon", "default": "ship", "options": [
+          { "value": "ship", "label": "Shipping" },
+          { "value": "returns", "label": "Returns" },
+          { "value": "secure", "label": "Secure" }
+        ] },
+        { "type": "text", "id": "text", "label": "Text", "default": "Printed to order — ships in 3–5 business days" }
+      ]
+    },
+    {
+      "type": "detail",
+      "name": "Detail (accordion)",
+      "settings": [
+        { "type": "text", "id": "heading", "label": "Heading", "default": "Materials & fit" },
+        { "type": "richtext", "id": "body", "label": "Body", "default": "<p>220gsm ring-spun cotton, pre-shrunk, unisex fit.</p>" }
+      ]
+    }
+  ],
+  "default": {
+    "blocks": [
+      { "type": "trust", "settings": { "icon": "ship", "text": "Printed to order — ships in 3–5 business days" } },
+      { "type": "trust", "settings": { "icon": "returns", "text": "Free 30-day returns & exchanges" } },
+      { "type": "trust", "settings": { "icon": "secure", "text": "Secure checkout" } },
+      { "type": "detail", "settings": { "heading": "Materials & fit", "body": "<p>Cut from 220gsm ring-spun cotton. Pre-shrunk, unisex fit, built to hold its shape.</p>" } },
+      { "type": "detail", "settings": { "heading": "Care", "body": "<p>Machine wash cold, inside out. Tumble dry low. Do not iron the crest.</p>" } }
+    ]
+  },
   "disabled_on": {
     "groups": ["header", "footer"]
   }

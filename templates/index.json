@@ -9,12 +9,52 @@
  */
 {
   "sections": {
-    "main": {
-      "type": "hello-world",
-      "settings": {}
+    "hero": {
+      "type": "gk-hero",
+      "settings": {
+        "eyebrow": "New drop · Core Essentials",
+        "heading": "Built for the pitch. Made for the city.",
+        "subheading": "The Club Crest Tee — heavyweight cotton, an embroidered dragon, built to outlast the season.",
+        "badge": "New Drop",
+        "primary_label": "Shop the drop",
+        "secondary_label": "Explore collection",
+        "meta": "$42 · unisex · S–3XL"
+      }
+    },
+    "collection_list": {
+      "type": "gk-collection-list",
+      "blocks": {
+        "t1": { "type": "tile", "settings": { "title": "Core Essentials", "count": "12 pieces", "style": "dark" } },
+        "t2": { "type": "tile", "settings": { "title": "Fan & Family", "count": "8 pieces", "style": "light" } },
+        "t3": { "type": "tile", "settings": { "title": "Accessories", "count": "9 pieces", "style": "stripes" } },
+        "t4": { "type": "tile", "settings": { "title": "Vintage · 25th", "count": "6 pieces", "style": "anniversary" } }
+      },
+      "block_order": ["t1", "t2", "t3", "t4"],
+      "settings": { "eyebrow": "Shop by collection", "heading": "Find your kit", "link_label": "View all" }
+    },
+    "mission": {
+      "type": "gk-mission",
+      "settings": {
+        "heading": "Every order backs a club that made room for everyone on the pitch.",
+        "body": "Shopping The Gotham Storefront helps fund kit, pitch time, and travel for New York City's inclusive rugby club."
+      }
+    },
+    "featured": {
+      "type": "gk-featured-products",
+      "settings": { "eyebrow": "Best-sellers", "heading": "Shop the favourites", "count": 4, "link_label": "Shop all" }
+    },
+    "community": {
+      "type": "gk-community",
+      "settings": { "eyebrow": "Community", "heading": "On the pitch & in the feed", "handle": "@gothamrugby" }
+    },
+    "signup": {
+      "type": "gk-email-signup",
+      "settings": {
+        "eyebrow": "Join the drop list",
+        "heading": "First dibs on every drop.",
+        "body": "New kit, restocks, and the 25 Years capsule — straight to your inbox. No spam, just the good stuff."
+      }
     }
   },
-  "order": [
-    "main"
-  ]
+  "order": ["hero", "collection_list", "mission", "featured", "community", "signup"]
 }

@@ -1,57 +1,132 @@
-<footer>
-  <div class="footer__copyright">
-    &copy;
-    {{ 'now' | date: '%Y' }}
-    {{ shop.name | link_to: routes.root_url }}, {{ powered_by_link }}
-  </div>
+{% comment %}
+  Gotham Knights storefront footer — Pride rule, brand column with socials,
+  up to three link columns, and a bottom bar.
+  Ported from the "StoreFooter" component of the Gotham Storefront design.
+{% endcomment %}
 
-  <div class="footer__links">
-    {% for link in section.settings.menu.links %}
-      {{ link.title | link_to: link.url }}
-    {% endfor %}
-  </div>
+<footer class="gk-footer full-width">
+  <hr class="gk-pride-rule gk-footer-rule">
+  <div class="gk-footer-main">
+    <div class="gk-footer-brand">
+      <div class="gk-footer-lockup">
+        {{ 'gk-shield-inv.svg' | inline_asset_content }}
+        <span class="gk-footer-name">{{ section.settings.wordmark | default: shop.name }}</span>
+      </div>
+      {% if section.settings.blurb != blank %}
+        <p class="gk-footer-blurb">{{ section.settings.blurb }}</p>
+      {% endif %}
+      <div class="gk-footer-social">
+        {% if section.settings.instagram != blank %}
+          <a class="gk-flink" href="{{ section.settings.instagram }}" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><path d="M17.5 6.5h.01"></path></svg></a>
+        {% endif %}
+        {% if section.settings.tiktok != blank %}
+          <a class="gk-flink" href="{{ section.settings.tiktok }}" aria-label="TikTok"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M16 8.245a6.5 6.5 0 0 0 3.5 1.02V6.2a3.5 3.5 0 0 1-2.02-1.02A3.5 3.5 0 0 1 16.48 3H13.5v11.25a2.25 2.25 0 1 1-1.7-2.18V9.02a5.25 5.25 0 1 0 4.2 5.14V8.245Z"></path></svg></a>
+        {% endif %}
+        <a class="gk-flink" href="mailto:{{ section.settings.email | default: shop.email }}" aria-label="Email"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 5L2 7"></path></svg></a>
+      </div>
+    </div>
 
-  <div class="footer__payment">
-    {% if section.settings.show_payment_icons %}
-      {% for type in shop.enabled_payment_types %}
-        {{ type | payment_type_svg_tag }}
+    <div class="gk-footer-cols">
+      {% for block in section.blocks %}
+        <div class="gk-footer-col" {{ block.shopify_attributes }}>
+          <div class="gk-footer-col-head">{{ block.settings.heading }}</div>
+          <div class="gk-footer-col-links">
+            {% for link in block.settings.menu.links %}
+              <a class="gk-flink" href="{{ link.url }}">{{ link.title }}</a>
+            {% endfor %}
+          </div>
+        </div>
       {% endfor %}
+    </div>
+  </div>
+
+  <div class="gk-footer-bottom">
+    <div class="gk-footer-bottom-inner">
+      <span class="gk-footer-copy">&copy; {{ 'now' | date: '%Y' }} {{ shop.name }} · {{ section.settings.copyright_tag }}</span>
+      <span class="gk-footer-note">{{ section.settings.support_note }}</span>
+    </div>
+    {% if section.settings.show_payment_icons %}
+      <div class="gk-footer-payment">
+        {% for type in shop.enabled_payment_types %}
+          {{ type | payment_type_svg_tag }}
+        {% endfor %}
+      </div>
     {% endif %}
   </div>
 </footer>
 
 {% stylesheet %}
-  footer {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 2rem;
+  .gk-footer { background: var(--navy-800); color: var(--navy-200); font-family: var(--font-body); margin-top: 0; }
+  .gk-footer-rule { margin: 0; border-radius: 0; height: 4px; border: 0; }
+  .gk-footer-main {
+    max-width: var(--gk-content-width); margin: 0 auto; padding: 44px 26px;
+    display: flex; flex-wrap: wrap; gap: 40px; justify-content: space-between;
   }
-  footer a {
-    text-decoration: none;
-    color: var(--color-foreground);
+  .gk-footer-brand { max-width: 330px; min-width: 230px; }
+  .gk-footer-lockup { display: flex; align-items: center; gap: 12px; }
+  .gk-footer-lockup svg { height: 46px; width: auto; }
+  .gk-footer-name {
+    font-family: var(--font-wordmark); color: #fff; font-size: 20px;
+    letter-spacing: -.05em; text-transform: uppercase; line-height: 1;
   }
-  footer .footer__links,
-  footer .footer__payment {
-    display: flex;
-    gap: 1rem;
+  .gk-footer-blurb { margin: 16px 0 18px; font-size: 14px; line-height: 1.6; color: var(--navy-200); }
+  .gk-footer-social { display: flex; gap: 10px; }
+  .gk-footer-social a {
+    display: grid; place-items: center; width: 38px; height: 38px;
+    border: 1px solid rgba(255,255,255,.22); border-radius: 8px; color: var(--navy-200);
+    text-decoration: none; transition: color var(--dur-fast) var(--ease-standard);
   }
+  .gk-footer-cols { display: flex; flex-wrap: wrap; gap: 48px; }
+  .gk-footer-col-head {
+    font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: .14em;
+    color: var(--gold-400); margin-bottom: 14px;
+  }
+  .gk-footer-col-links { display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+  .gk-footer-col-links a { color: var(--navy-200); text-decoration: none; transition: color var(--dur-fast) var(--ease-standard); }
+  .gk-footer-bottom { border-top: 1px solid rgba(255,255,255,.1); }
+  .gk-footer-bottom-inner {
+    max-width: var(--gk-content-width); margin: 0 auto; padding: 16px 26px;
+    display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; align-items: center;
+  }
+  .gk-footer-copy { font: 500 12px var(--font-mono); color: var(--navy-300); }
+  .gk-footer-note { font: 500 12px var(--font-body); color: var(--navy-300); }
+  .gk-footer-payment {
+    max-width: var(--gk-content-width); margin: 0 auto; padding: 0 26px 20px;
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .gk-footer-payment svg { height: 24px; width: auto; }
 {% endstylesheet %}
 
 {% schema %}
 {
   "name": "t:general.footer",
   "settings": [
+    { "type": "text", "id": "wordmark", "label": "Wordmark", "default": "Gotham Knights" },
+    { "type": "textarea", "id": "blurb", "label": "Brand blurb", "default": "New York City's inclusive rugby club. Built for the pitch, made for the city — every order backs the squad." },
+    { "type": "url", "id": "instagram", "label": "Instagram URL" },
+    { "type": "url", "id": "tiktok", "label": "TikTok URL" },
+    { "type": "text", "id": "email", "label": "Contact email" },
+    { "type": "text", "id": "copyright_tag", "label": "Copyright tagline", "default": "All bodies, all levels." },
+    { "type": "text", "id": "support_note", "label": "Support note", "default": "Every purchase supports the club. Not a tax-deductible donation." },
+    { "type": "checkbox", "id": "show_payment_icons", "label": "t:labels.show_payment_icons", "default": true }
+  ],
+  "blocks": [
     {
-      "type": "link_list",
-      "id": "menu",
-      "label": "t:labels.menu"
-    },
-    {
-      "type": "checkbox",
-      "id": "show_payment_icons",
-      "label": "t:labels.show_payment_icons",
-      "default": true
+      "type": "link_column",
+      "name": "Link column",
+      "settings": [
+        { "type": "text", "id": "heading", "label": "Heading", "default": "Shop" },
+        { "type": "link_list", "id": "menu", "label": "Menu" }
+      ]
     }
-  ]
+  ],
+  "max_blocks": 3,
+  "default": {
+    "blocks": [
+      { "type": "link_column", "settings": { "heading": "Shop" } },
+      { "type": "link_column", "settings": { "heading": "Club" } },
+      { "type": "link_column", "settings": { "heading": "Help" } }
+    ]
+  }
 }
 {% endschema %}

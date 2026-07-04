@@ -1,0 +1,52 @@
+{% comment %}
+  Gotham Knights homepage featured products — a 4-up grid of product cards
+  from a chosen collection (best-sellers / favourites).
+{% endcomment %}
+
+{% liquid
+  assign col = section.settings.collection
+  assign limit = section.settings.count | default: 4
+%}
+
+<section class="gk-band gk-band-paper full-width">
+  <div class="gk-band-inner">
+    <div class="gk-band-head">
+      <div>
+        {% if section.settings.eyebrow != blank %}<div class="gk-eyebrow-gold">{{ section.settings.eyebrow }}</div>{% endif %}
+        <h2 class="gk-band-title">{{ section.settings.heading }}</h2>
+      </div>
+      {% if section.settings.link_label != blank %}
+        <a class="gk-tlink" href="{{ col.url | default: routes.all_products_collection_url }}">{{ section.settings.link_label }}</a>
+      {% endif %}
+    </div>
+
+    <div class="gk-pgrid">
+      {% if col != blank and col.products.size > 0 %}
+        {% for product in col.products limit: limit %}
+          {% render 'product-card', product: product %}
+        {% endfor %}
+      {% else %}
+        {% for i in (1..limit) %}
+          {% render 'product-card-placeholder', dark: forloop.index0 | modulo: 2 %}
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% comment %} Grid + card styles live in gotham-ds.css (shared). {% endcomment %}
+
+{% schema %}
+{
+  "name": "Featured products",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Best-sellers" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Shop the favourites" },
+    { "type": "collection", "id": "collection", "label": "Collection" },
+    { "type": "range", "id": "count", "min": 2, "max": 8, "step": 1, "label": "Products to show", "default": 4 },
+    { "type": "text", "id": "link_label", "label": "Link label", "default": "Shop all" }
+  ],
+  "presets": [{ "name": "Featured products" }],
+  "disabled_on": { "groups": ["header", "footer"] }
+}
+{% endschema %}
