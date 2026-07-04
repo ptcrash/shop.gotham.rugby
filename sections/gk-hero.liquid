@@ -7,7 +7,32 @@
 {% endcomment %}
 
 {% liquid
-  assign hero_img = section.settings.image
+  # Optional featured product — the hero derives its image, CTA link, heading and
+  # price from it, so swapping the hero product is a one-field change in the
+  # editor. Every derived value stays overridable by the matching text setting.
+  assign hero_product = section.settings.product
+
+  assign hero_img = section.settings.image | default: hero_product.featured_image
+
+  assign primary_url = section.settings.primary_url | default: hero_product.url | default: routes.all_products_collection_url
+
+  assign hero_heading = section.settings.heading
+  if hero_heading == blank and hero_product != blank
+    assign hero_heading = hero_product.title
+  endif
+
+  assign hero_meta = section.settings.meta
+  if hero_meta == blank and hero_product != blank
+    assign hero_meta = hero_product.price | money
+    # Append the size range (e.g. "· 2XS–6XL") when the product has a Size option.
+    for opt in hero_product.options_with_values
+      assign opt_down = opt.name | downcase
+      if opt_down == 'size' and opt.values.size > 1
+        assign hero_meta = hero_meta | append: ' · ' | append: opt.values.first | append: '–' | append: opt.values.last
+      endif
+    endfor
+  endif
+
   assign layout_class = 'gk-hero--image-right'
   if section.settings.layout == 'image_left'
     assign layout_class = 'gk-hero--image-left'
@@ -24,10 +49,10 @@
       {{
         hero_img
         | image_url: width: 900
-        | image_tag: loading: 'eager', widths: '600,900,1200', class: 'gk-hero-photo', alt: hero_img.alt | default: section.settings.heading | escape
+        | image_tag: loading: 'eager', widths: '600,900,1200', class: 'gk-hero-photo', alt: hero_img.alt | default: hero_heading | escape
       }}
     {% else %}
-      <img src="{{ 'gk-shield-2c.svg' | asset_url }}" alt="{{ section.settings.heading | escape }}" width="150" height="150" class="gk-hero-crest">
+      <img src="{{ 'gk-shield-2c.svg' | asset_url }}" alt="{{ hero_heading | escape }}" width="150" height="150" class="gk-hero-crest">
     {% endif %}
     {% if hero_img and overlay > 0 %}
       <span class="gk-hero-overlay" aria-hidden="true" style="opacity: {{ overlay | divided_by: 100.0 }};"></span>
@@ -41,13 +66,13 @@
       <div class="gk-hero-eyebrow"><span class="gk-hero-tick"></span>{{ section.settings.eyebrow }}</div>
     {% endif %}
     <h1 class="gk-hero-title gk-athletic">
-      {%- if section.settings.heading != blank -%}<span class="gk-hero-line">{{ section.settings.heading }}</span>{%- endif -%}
+      {%- if hero_heading != blank -%}<span class="gk-hero-line">{{ hero_heading }}</span>{%- endif -%}
       {%- if section.settings.heading_accent != blank -%}<span class="gk-hero-line accent">{{ section.settings.heading_accent }}</span>{%- endif -%}
     </h1>
     {% if section.settings.subheading != blank %}<p class="gk-hero-sub">{{ section.settings.subheading }}</p>{% endif %}
     <div class="gk-hero-cta">
       {% if section.settings.primary_label != blank %}
-        <a class="gk-btn gk-btn-primary" href="{{ section.settings.primary_url | default: routes.all_products_collection_url }}">{{ section.settings.primary_label }}
+        <a class="gk-btn gk-btn-primary" href="{{ primary_url }}">{{ section.settings.primary_label }}
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
         </a>
       {% endif %}
@@ -55,7 +80,7 @@
         <a class="gk-btn gk-btn-outline-light" href="{{ section.settings.secondary_url | default: routes.collections_url }}">{{ section.settings.secondary_label }}</a>
       {% endif %}
     </div>
-    {% if section.settings.meta != blank %}<div class="gk-hero-meta">{{ section.settings.meta }}</div>{% endif %}
+    {% if hero_meta != blank %}<div class="gk-hero-meta">{{ hero_meta }}</div>{% endif %}
   </div>
 </section>
 
@@ -136,6 +161,7 @@
 {
   "name": "Hero",
   "settings": [
+    { "type": "product", "id": "product", "label": "Featured product", "info": "The hero pulls its image, price and 'Shop' link from this product. Leave blank to use the fields below." },
     { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "New drop · Core Essentials" },
     { "type": "textarea", "id": "heading", "label": "Heading (white line)", "default": "Built for the pitch." },
     { "type": "textarea", "id": "heading_accent", "label": "Heading accent (gold line)", "info": "Shown below the heading in the accent colour.", "default": "Made for the city." },
