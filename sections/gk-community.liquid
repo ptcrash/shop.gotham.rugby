@@ -5,6 +5,29 @@
   pattern stand-in, and optionally link it out.
 {% endcomment %}
 
+{% liquid
+  comment
+    Instagram details are sourced from a metaobject (Admin > Content >
+    Metaobjects) so the handle/link live in one place and can change without
+    touching the theme. Expected metaobject type (default "instagram") with
+    fields: "handle" (single line text) and "url" (URL). Anything missing falls
+    back to the section's text settings, so this is safe when no metaobject exists.
+  endcomment
+  assign ig_type = section.settings.instagram_metaobject_type | default: 'instagram'
+  assign ig = shop.metaobjects[ig_type].values.first
+  assign follow_handle = section.settings.handle
+  assign follow_url = section.settings.follow_url
+  if ig != blank
+    if ig.handle.value != blank
+      assign follow_handle = ig.handle.value
+    endif
+    assign mo_url = ig.url.value | default: ig.link.value | default: ig.profile_url.value
+    if mo_url != blank
+      assign follow_url = mo_url
+    endif
+  endif
+%}
+
 <section class="gk-community full-width">
   <div class="gk-band-inner">
     <div class="gk-band-head">
@@ -12,10 +35,10 @@
         {% if section.settings.eyebrow != blank %}<div class="gk-eyebrow-gold gk-eyebrow-onnavy">{{ section.settings.eyebrow }}</div>{% endif %}
         <h2 class="gk-community-title">{{ section.settings.heading }}</h2>
       </div>
-      {% if section.settings.handle != blank %}
-        <a class="gk-btn gk-btn-outline-light gk-community-follow" href="{{ section.settings.follow_url | default: '#' }}">
+      {% if follow_handle != blank and follow_url != blank %}
+        <a class="gk-btn gk-btn-outline-light gk-community-follow" href="{{ follow_url }}" target="_blank" rel="noopener me">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><path d="M17.5 6.5h.01"></path></svg>
-          Follow {{ section.settings.handle }}
+          Follow {{ follow_handle }}
         </a>
       {% endif %}
     </div>
@@ -88,8 +111,11 @@
   "settings": [
     { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Community" },
     { "type": "text", "id": "heading", "label": "Heading", "default": "On the pitch & in the feed" },
-    { "type": "text", "id": "handle", "label": "Social handle", "default": "@gothamrugby" },
-    { "type": "url", "id": "follow_url", "label": "Follow URL" }
+    { "type": "text", "id": "handle", "label": "Social handle (fallback)", "default": "@gothamrugby" },
+    { "type": "url", "id": "follow_url", "label": "Follow URL (fallback)" },
+    { "type": "header", "content": "Instagram metaobject" },
+    { "type": "paragraph", "content": "The handle + link are pulled from a metaobject (Admin > Content > Metaobjects) of the type below, with fields 'handle' and 'url'. When present it overrides the fallbacks above; when absent the fallbacks are used." },
+    { "type": "text", "id": "instagram_metaobject_type", "label": "Metaobject type", "default": "instagram" }
   ],
   "blocks": [
     {

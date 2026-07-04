@@ -2,8 +2,10 @@
   Gotham Knights homepage featured products — a grid of product cards.
   Source order:
     1. Manually picked "Product" blocks (if any are set), else
-    2. A chosen collection, else
-    3. Branded crest placeholders (fresh store).
+    2. A chosen collection (e.g. "Best Sellers").
+  Graceful failure (Shopify best practice): if neither source resolves to any
+  products, the section renders NOTHING on the live storefront and only shows a
+  configuration placeholder inside the theme editor (request.design_mode).
   Supports app blocks (@app) so merchants can drop app content into the grid.
 {% endcomment %}
 
@@ -17,57 +19,71 @@
       assign manual_count = manual_count | plus: 1
     endif
   endfor
+
+  assign col_has = false
+  if col != blank and col.products_count > 0
+    assign col_has = true
+  endif
+
+  assign has_content = false
+  if manual_count > 0 or col_has
+    assign has_content = true
+  endif
 %}
 
-<section class="gk-band gk-band-paper full-width">
-  <div class="gk-band-inner">
-    <div class="gk-band-head">
-      <div>
-        {% if section.settings.eyebrow != blank %}<div class="gk-eyebrow-gold">{{ section.settings.eyebrow }}</div>{% endif %}
-        <h2 class="gk-band-title">{{ section.settings.heading }}</h2>
+{% if has_content or request.design_mode %}
+  <section class="gk-band gk-band-paper full-width">
+    <div class="gk-band-inner">
+      <div class="gk-band-head">
+        <div>
+          {% if section.settings.eyebrow != blank %}<div class="gk-eyebrow-gold">{{ section.settings.eyebrow }}</div>{% endif %}
+          <h2 class="gk-band-title">{{ section.settings.heading }}</h2>
+        </div>
+        {% if section.settings.link_label != blank and col != blank %}
+          <a class="gk-tlink" href="{{ col.url }}">{{ section.settings.link_label }}</a>
+        {% endif %}
       </div>
-      {% if section.settings.link_label != blank %}
-        <a class="gk-tlink" href="{{ col.url | default: routes.all_products_collection_url }}">{{ section.settings.link_label }}</a>
-      {% endif %}
-    </div>
 
-    <div class="gk-pgrid">
-      {% if manual_count > 0 %}
-        {% comment %} Manually curated products (+ any app blocks) {% endcomment %}
-        {% for block in section.blocks %}
-          {% case block.type %}
-            {% when 'product' %}
-              {% if block.settings.product != blank %}
-                <div {{ block.shopify_attributes }}>{% render 'product-card', product: block.settings.product %}</div>
+      {% if has_content %}
+        <div class="gk-pgrid">
+          {% if manual_count > 0 %}
+            {% for block in section.blocks %}
+              {% case block.type %}
+                {% when 'product' %}
+                  {% if block.settings.product != blank %}
+                    <div {{ block.shopify_attributes }}>{% render 'product-card', product: block.settings.product %}</div>
+                  {% endif %}
+                {% when '@app' %}
+                  <div {{ block.shopify_attributes }}>{% render block %}</div>
+              {% endcase %}
+            {% endfor %}
+          {% else %}
+            {% for product in col.products limit: limit %}
+              {% render 'product-card', product: product %}
+            {% endfor %}
+            {% for block in section.blocks %}
+              {% if block.type == '@app' %}
+                <div {{ block.shopify_attributes }}>{% render block %}</div>
               {% endif %}
-            {% when '@app' %}
-              <div {{ block.shopify_attributes }}>{% render block %}</div>
-          {% endcase %}
-        {% endfor %}
-      {% elsif col != blank and col.products.size > 0 %}
-        {% for product in col.products limit: limit %}
-          {% render 'product-card', product: product %}
-        {% endfor %}
-        {% for block in section.blocks %}
-          {% if block.type == '@app' %}
-            <div {{ block.shopify_attributes }}>{% render block %}</div>
+            {% endfor %}
           {% endif %}
-        {% endfor %}
+        </div>
       {% else %}
-        {% for i in (1..limit) %}
-          {% render 'product-card-placeholder', dark: forloop.index0 | modulo: 2 %}
-        {% endfor %}
-        {% for block in section.blocks %}
-          {% if block.type == '@app' %}
-            <div {{ block.shopify_attributes }}>{% render block %}</div>
-          {% endif %}
-        {% endfor %}
+        {% comment %} Editor-only: never renders on the live storefront. {% endcomment %}
+        <div class="gk-onboarding">
+          <p class="gk-onboarding-note">This section is empty, so it’s hidden on your live store. Pick a collection (for example, <strong>Best Sellers</strong>) or add Product blocks to show it.</p>
+          <div class="gk-pgrid">
+            {% for i in (1..limit) %}
+              {% render 'product-card-placeholder', dark: forloop.index0 | modulo: 2 %}
+            {% endfor %}
+          </div>
+        </div>
       {% endif %}
     </div>
-  </div>
-</section>
+  </section>
+{% endif %}
 
-{% comment %} Grid + card styles live in gotham-ds.css (shared). {% endcomment %}
+{% comment %} Grid + card + .gk-onboarding-note styles live in gotham-ds.css (shared). {% endcomment %}
 
 {% schema %}
 {

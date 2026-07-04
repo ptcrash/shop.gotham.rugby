@@ -42,11 +42,20 @@
     },
     "featured": {
       "type": "gk-featured-products",
-      "settings": { "eyebrow": "Best-sellers", "heading": "Shop the favourites", "count": 4, "link_label": "Shop all" }
+      "settings": { "eyebrow": "Best-sellers", "heading": "Shop the favourites", "collection": "best-sellers", "count": 4, "link_label": "Shop all" }
     },
     "community": {
       "type": "gk-community",
-      "settings": { "eyebrow": "Community", "heading": "On the pitch & in the feed", "handle": "@gothamrugby" }
+      "blocks": {
+        "c1": { "type": "tile", "settings": { "style": "photo" } },
+        "c2": { "type": "tile", "settings": { "style": "dark" } },
+        "c3": { "type": "tile", "settings": { "style": "stripes" } },
+        "c4": { "type": "tile", "settings": { "style": "gold", "label": "GK" } },
+        "c5": { "type": "tile", "settings": { "style": "light" } },
+        "c6": { "type": "tile", "settings": { "style": "ring" } }
+      },
+      "block_order": ["c1", "c2", "c3", "c4", "c5", "c6"],
+      "settings": { "eyebrow": "Community", "heading": "On the pitch & in the feed", "handle": "@gothamrugby", "follow_url": "https://www.instagram.com/gothamrugby/" }
     },
     "signup": {
       "type": "gk-email-signup",
