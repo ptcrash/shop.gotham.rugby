@@ -1,60 +1,92 @@
 {% comment %}
   Gotham Knights homepage "Shop by collection" — a row of collection tiles,
-  each with a branded pattern stand-in (or the collection image when set).
+  each linked to a collection picked in the editor. A tile uses the linked
+  collection's title/count/image automatically (all overridable per tile).
+
+  Graceful failure (Shopify best practice): a tile that resolves to nothing
+  (no linked collection AND no manual title) is skipped, and if no tile has
+  content the whole section is hidden on the live storefront — a configuration
+  placeholder is shown only inside the theme editor (request.design_mode).
 {% endcomment %}
 
-<section class="gk-band gk-band-paper full-width">
-  <div class="gk-band-inner">
-    <div class="gk-band-head">
-      <div>
-        {% if section.settings.eyebrow != blank %}<div class="gk-eyebrow-gold">{{ section.settings.eyebrow }}</div>{% endif %}
-        <h2 class="gk-band-title">{{ section.settings.heading }}</h2>
-      </div>
-      {% if section.settings.link_label != blank %}
-        <a class="gk-tlink" href="{{ section.settings.link_url | default: routes.collections_url }}">{{ section.settings.link_label }}</a>
-      {% endif %}
-    </div>
+{% liquid
+  assign renderable = 0
+  for block in section.blocks
+    if block.settings.collection != blank or block.settings.title != blank
+      assign renderable = renderable | plus: 1
+    endif
+  endfor
+%}
 
-    <div class="gk-tiles">
-      {% for block in section.blocks %}
-        {% liquid
-          assign col = block.settings.collection
-          assign tile_url = block.settings.collection.url | default: block.settings.url | default: routes.collections_url
-          assign tile_title = block.settings.title | default: col.title | default: 'Shop the collection'
-          assign tile_count = block.settings.count
-          if tile_count == blank and col != blank
-            if col.products_count == 1
-              assign tile_count = '1 piece'
-            else
-              assign tile_count = col.products_count | append: ' pieces'
+{% if renderable > 0 or request.design_mode %}
+  <section class="gk-band gk-band-paper full-width">
+    <div class="gk-band-inner">
+      <div class="gk-band-head">
+        <div>
+          {% if section.settings.eyebrow != blank %}<div class="gk-eyebrow-gold">{{ section.settings.eyebrow }}</div>{% endif %}
+          <h2 class="gk-band-title">{{ section.settings.heading }}</h2>
+        </div>
+        {% if section.settings.link_label != blank %}
+          <a class="gk-tlink" href="{{ section.settings.link_url | default: routes.collections_url }}">{{ section.settings.link_label }}</a>
+        {% endif %}
+      </div>
+
+      {% if renderable == 0 %}
+        <p class="gk-onboarding-note">No collections are linked yet, so this section is hidden on your live store. Add a tile and pick a collection to show it.</p>
+      {% endif %}
+
+      <div class="gk-tiles">
+        {% for block in section.blocks %}
+          {% liquid
+            assign col = block.settings.collection
+            # Skip tiles that resolve to nothing (deleted/blank collection and no manual title).
+            assign has_tile = false
+            if col != blank or block.settings.title != blank
+              assign has_tile = true
             endif
-          endif
-        %}
-        <a class="gk-ctile gk-tile-{{ block.settings.style }}" href="{{ tile_url }}" {{ block.shopify_attributes }}>
-          <span class="gk-ctile-img">
-            {% if block.settings.image %}
-              {{ block.settings.image | image_url: width: 600 | image_tag: loading: 'lazy', class: 'gk-ctile-photo', alt: tile_title | escape }}
-            {% elsif block.settings.style == 'light' %}
-              <img src="{{ 'gk-shield-2c.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150">
-            {% elsif block.settings.style == 'anniversary' %}
-              <span class="gk-anniv"><span class="gk-anniv-num">25</span><span class="gk-anniv-word">Years</span></span>
-            {% else %}
-              <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150">
-            {% endif %}
-          </span>
-          <span class="gk-ctile-scrim"></span>
-          <span class="gk-ctile-content">
-            <span class="gk-ctile-title">{{ tile_title }}</span>
-            <span class="gk-ctile-meta">
-              {% if tile_count != blank %}<span class="gk-ctile-count">{{ tile_count }}</span>{% endif %}
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
-            </span>
-          </span>
-        </a>
-      {% endfor %}
+
+            assign tile_url = col.url | default: block.settings.url | default: routes.collections_url
+            assign tile_title = block.settings.title | default: col.title | default: 'Shop the collection'
+            assign tile_img = block.settings.image | default: col.featured_image | default: col.image
+
+            assign tile_count = block.settings.count
+            if tile_count == blank and col != blank
+              if col.products_count == 1
+                assign tile_count = '1 piece'
+              else
+                assign tile_count = col.products_count | append: ' pieces'
+              endif
+            endif
+          %}
+          {% if has_tile %}
+            <a class="gk-ctile gk-tile-{% if tile_img %}photo{% else %}{{ block.settings.style }}{% endif %}" href="{{ tile_url }}" {{ block.shopify_attributes }}>
+              <span class="gk-ctile-img">
+                {% if tile_img %}
+                  {%- assign tile_alt = tile_title | escape -%}
+                  {{ tile_img | image_url: width: 600, height: 600, crop: 'center' | image_tag: loading: 'lazy', class: 'gk-ctile-photo', alt: tile_alt }}
+                {% elsif block.settings.style == 'light' %}
+                  <img src="{{ 'gk-shield-2c.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150">
+                {% elsif block.settings.style == 'anniversary' %}
+                  <span class="gk-anniv"><span class="gk-anniv-num">25</span><span class="gk-anniv-word">Years</span></span>
+                {% else %}
+                  <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150">
+                {% endif %}
+              </span>
+              <span class="gk-ctile-scrim"></span>
+              <span class="gk-ctile-content">
+                <span class="gk-ctile-title">{{ tile_title }}</span>
+                <span class="gk-ctile-meta">
+                  {% if tile_count != blank %}<span class="gk-ctile-count">{{ tile_count }}</span>{% endif %}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                </span>
+              </span>
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
     </div>
-  </div>
-</section>
+  </section>
+{% endif %}
 
 {% comment %} Tile styles (.gk-tiles / .gk-ctile / .gk-tile-*) live in gotham-ds.css (shared). {% endcomment %}
 

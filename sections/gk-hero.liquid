@@ -47,12 +47,12 @@
     {% if section.settings.subheading != blank %}<p class="gk-hero-sub">{{ section.settings.subheading }}</p>{% endif %}
     <div class="gk-hero-cta">
       {% if section.settings.primary_label != blank %}
-        <a class="gk-btn gk-btn-primary" href="{{ section.settings.primary_url | default: '#' }}">{{ section.settings.primary_label }}
+        <a class="gk-btn gk-btn-primary" href="{{ section.settings.primary_url | default: routes.all_products_collection_url }}">{{ section.settings.primary_label }}
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
         </a>
       {% endif %}
       {% if section.settings.secondary_label != blank %}
-        <a class="gk-btn gk-btn-outline-light" href="{{ section.settings.secondary_url | default: '#' }}">{{ section.settings.secondary_label }}</a>
+        <a class="gk-btn gk-btn-outline-light" href="{{ section.settings.secondary_url | default: routes.collections_url }}">{{ section.settings.secondary_label }}</a>
       {% endif %}
     </div>
     {% if section.settings.meta != blank %}<div class="gk-hero-meta">{{ section.settings.meta }}</div>{% endif %}

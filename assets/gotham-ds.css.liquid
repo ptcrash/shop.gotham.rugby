@@ -290,6 +290,13 @@ body.gk {
 /* Product grid */
 .gk-pgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
 
+/* Editor-only onboarding note (sections that hide themselves when empty) */
+.gk-onboarding-note {
+  font: 500 13px/1.5 var(--font-body); color: var(--ink-500);
+  background: rgba(254, 197, 38, 0.14); border: 1px dashed var(--gold-600);
+  border-radius: 8px; padding: 10px 14px; margin: 0 0 20px;
+}
+
 /* Buttons */
 .gk-btn {
   display: inline-flex; align-items: center; gap: 10px; font: 700 16px var(--font-body);
