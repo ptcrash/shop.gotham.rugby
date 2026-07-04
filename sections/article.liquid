@@ -1,68 +1,201 @@
 {% comment %}
-  This section is used in the article template to render the article page, which
-  displays the full content of the blog post and can optionally include a
-  comments section for customers (not shown in this example).
-
+  Gotham Knights article page — navy hero with title/meta, a centered rich-text
+  body, tags, share links, comments (when enabled), and a back-to-blog CTA.
   https://shopify.dev/docs/storefronts/themes/architecture/templates/article
 {% endcomment %}
 
-{% if article.image %}
-  {{ article.image | image_url: width: 1000 | image_tag }}
-{% endif %}
+{% assign date = article.published_at | date: '%B %-d, %Y' %}
+{% assign share_url = shop.url | append: article.url %}
 
-<h1>{{ article.title }}</h1>
-
-{% assign date = article.published_at | time_tag: format: 'date' %}
-<p>{{ 'blog.article_metadata_html' | t: date: date, author: article.author }}</p>
-
-{{ article.content }}
-
-{% if blog.comments_enabled? %}
-  <h2>{{ 'blog.article_comments' | t }}</h2>
-
-  <div id="comments">
-    {% paginate article.comments by 10 %}
-      {% for comment in article.comments %}
-        <div>
-          <p>{{ comment.author }}</p>
-          <p>
-            {{- comment.created_at | time_tag: format: 'date' -}}
-          </p>
-          <p>{{ comment.content }}</p>
-        </div>
-      {% endfor %}
-
-      {{ paginate | default_pagination: anchor: 'comments' }}
-    {% endpaginate %}
+<article class="gk-article">
+  <div class="gk-article-hero full-width">
+    <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150" class="gk-article-crest">
+    <div class="gk-band-inner gk-article-hero-inner">
+      <nav class="gk-breadcrumb" aria-label="Breadcrumb">
+        <a href="{{ routes.root_url }}">Home</a> /
+        <a href="{{ blog.url }}">{{ blog.title }}</a> /
+        <span>{{ article.title | truncate: 40 }}</span>
+      </nav>
+      {% if section.settings.show_tags and article.tags.size > 0 %}
+        <div class="gk-eyebrow-gold gk-eyebrow-onnavy">{{ article.tags.first }}</div>
+      {% endif %}
+      <h1 class="gk-article-title gk-athletic">{{ article.title }}</h1>
+      <div class="gk-article-meta">
+        {% if section.settings.show_date %}<time datetime="{{ article.published_at | date: '%Y-%m-%d' }}">{{ date }}</time>{% endif %}
+        {% if section.settings.show_date and section.settings.show_author %} · {% endif %}
+        {% if section.settings.show_author %}<span>By {{ article.author }}</span>{% endif %}
+      </div>
+    </div>
   </div>
 
-  {% form 'new_comment', article %}
-    <h2>{{ 'blog.comment_form_title' | t }}</h2>
-
-    {{ form.errors | default_errors }}
-
-    <div>
-      <label for="author">{{ 'blog.comment_form_name' | t }}</label>
-      <input type="text" name="comment[author]" id="author" value="{{ form.author }}" required>
+  {% if article.image %}
+    <div class="gk-article-feature full-width">
+      <div class="gk-band-inner">
+        {{ article.image | image_url: width: 1600 | image_tag: loading: 'eager', widths: '600,900,1200,1600', class: 'gk-article-feature-img', alt: article.image.alt | default: article.title | escape }}
+      </div>
     </div>
+  {% endif %}
 
-    <div>
-      <label for="email">{{ 'blog.comment_form_email' | t }}</label>
-      <input type="email" name="comment[email]" id="email" value="{{ form.email }}" required>
+  <div class="gk-band gk-band-paper full-width">
+    <div class="gk-band-inner">
+      <div class="gk-article-body">
+        <div class="gk-article-rte rte">{{ article.content }}</div>
+
+        {% if section.settings.show_tags and article.tags.size > 0 %}
+          <div class="gk-article-tags">
+            {% for tag in article.tags %}
+              <a class="gk-blog-tag" href="{{ blog.url }}/tagged/{{ tag | handleize }}">{{ tag }}</a>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% if section.settings.show_share %}
+          <div class="gk-article-share">
+            <span class="gk-article-share-label">Share</span>
+            <a class="gk-article-share-link" href="https://twitter.com/intent/tweet?text={{ article.title | url_encode }}&url={{ share_url }}" target="_blank" rel="noopener" aria-label="Share on X">X</a>
+            <a class="gk-article-share-link" href="https://www.facebook.com/sharer.php?u={{ share_url }}" target="_blank" rel="noopener" aria-label="Share on Facebook">Facebook</a>
+            <a class="gk-article-share-link" href="mailto:?subject={{ article.title | url_encode }}&body={{ share_url }}" aria-label="Share by email">Email</a>
+          </div>
+        {% endif %}
+
+        <div class="gk-article-nav">
+          {% if blog.previous_article %}
+            <a class="gk-tlink" href="{{ blog.previous_article.url }}">← Previous</a>
+          {% else %}<span></span>{% endif %}
+          <a class="gk-btn gk-btn-invert" href="{{ blog.url }}">All {{ blog.title | downcase }}</a>
+          {% if blog.next_article %}
+            <a class="gk-tlink" href="{{ blog.next_article.url }}">Next →</a>
+          {% else %}<span></span>{% endif %}
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div>
-      <label for="body">{{ 'blog.comment_form_body' | t }}</label>
-      <textarea name="comment[body]" id="body" required>{{ form.body }}</textarea>
+  {% if blog.comments_enabled? %}
+    <div class="gk-band gk-band-sunken full-width">
+      <div class="gk-band-inner">
+        <div class="gk-article-comments">
+          <h2 class="gk-band-title gk-article-comments-title">{{ 'blog.article_comments' | t }}</h2>
+
+          <div id="comments">
+            {% paginate article.comments by 10 %}
+              {% for comment in article.comments %}
+                <div class="gk-comment">
+                  <div class="gk-comment-head">
+                    <span class="gk-comment-author">{{ comment.author }}</span>
+                    <time class="gk-comment-date" datetime="{{ comment.created_at | date: '%Y-%m-%d' }}">{{ comment.created_at | date: '%b %-d, %Y' }}</time>
+                  </div>
+                  <p class="gk-comment-body">{{ comment.content }}</p>
+                </div>
+              {% endfor %}
+
+              {% if paginate.pages > 1 %}
+                <nav class="gk-pagination" aria-label="Comments pagination">{{ paginate | default_pagination: anchor: 'comments' }}</nav>
+              {% endif %}
+            {% endpaginate %}
+          </div>
+
+          {% form 'new_comment', article, class: 'gk-comment-form' %}
+            <h3 class="gk-comment-form-title">{{ 'blog.comment_form_title' | t }}</h3>
+            {% if form.errors %}
+              <div class="gk-form-errors">{{ form.errors | default_errors }}</div>
+            {% endif %}
+            {% if form.posted_successfully? %}
+              <p class="gk-form-success">Thanks — your comment has been submitted.</p>
+            {% endif %}
+
+            <div class="gk-field-row">
+              <div class="gk-field">
+                <label for="comment-author">{{ 'blog.comment_form_name' | t }}</label>
+                <input type="text" name="comment[author]" id="comment-author" value="{{ form.author }}" required>
+              </div>
+              <div class="gk-field">
+                <label for="comment-email">{{ 'blog.comment_form_email' | t }}</label>
+                <input type="email" name="comment[email]" id="comment-email" value="{{ form.email }}" required>
+              </div>
+            </div>
+            <div class="gk-field">
+              <label for="comment-body">{{ 'blog.comment_form_body' | t }}</label>
+              <textarea name="comment[body]" id="comment-body" rows="5" required>{{ form.body }}</textarea>
+            </div>
+            <button type="submit" class="gk-btn gk-btn-primary">{{ 'blog.comment_form_submit' | t }}</button>
+          {% endform %}
+        </div>
+      </div>
     </div>
+  {% endif %}
+</article>
 
-    <input type="submit" value="{{ 'blog.comment_form_submit' | t }}">
-  {% endform %}
-{% endif %}
+{% stylesheet %}
+  .gk-article-hero { position: relative; background: var(--navy-700); overflow: hidden; padding: 44px 50px 48px; }
+  .gk-article-crest { position: absolute; top: 50%; right: -3%; transform: translateY(-50%); height: 180%; width: auto; opacity: .06; }
+  .gk-article-hero-inner { position: relative; max-width: 820px; }
+  .gk-article-title { color: #fff; font-size: 2.9rem; line-height: .98; margin: 0 0 16px; }
+  .gk-article-meta { font: 600 13px var(--font-mono); letter-spacing: .02em; color: var(--navy-200); text-transform: uppercase; }
+
+  .gk-article-feature { background: var(--paper); padding: 40px 50px 0; }
+  .gk-article-feature-img { width: 100%; max-width: 980px; margin: 0 auto; display: block; border-radius: 14px; }
+
+  .gk-article-body { max-width: 720px; margin: 0 auto; }
+  .gk-article-rte { font: 400 18px/1.7 var(--font-body); color: var(--ink-900); }
+  .gk-article-rte h2 { font: 800 1.7rem/1.15 var(--font-heading); color: var(--navy-700); margin: 2em 0 .5em; }
+  .gk-article-rte h3 { font: 800 1.3rem/1.2 var(--font-heading); color: var(--navy-700); margin: 1.6em 0 .5em; }
+  .gk-article-rte p { margin: 0 0 1.2em; }
+  .gk-article-rte a { color: var(--navy-700); text-decoration: underline; text-decoration-color: var(--gold-500); text-underline-offset: 2px; }
+  .gk-article-rte img { max-width: 100%; height: auto; border-radius: 10px; }
+  .gk-article-rte blockquote { border-left: 4px solid var(--gold-500); margin: 1.5em 0; padding: 4px 0 4px 22px; font-style: italic; color: var(--ink-700); }
+  .gk-article-rte ul, .gk-article-rte ol { margin: 0 0 1.2em; padding-left: 1.4em; }
+
+  .gk-article-tags { display: flex; gap: 9px; flex-wrap: wrap; margin: 34px 0 0; }
+
+  .gk-article-share { display: flex; align-items: center; gap: 12px; margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--border); }
+  .gk-article-share-label { font: 700 12px var(--font-body); text-transform: uppercase; letter-spacing: .08em; color: var(--navy-700); }
+  .gk-article-share-link { font: 600 13px var(--font-body); color: var(--navy-500); text-decoration: none; padding: 6px 12px; border: 1px solid var(--border-strong); border-radius: 99px; }
+  .gk-article-share-link:hover { border-color: var(--navy-700); color: var(--navy-700); }
+
+  .gk-article-nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 40px; padding-top: 26px; border-top: 1px solid var(--border); }
+
+  .gk-article-comments { max-width: 720px; margin: 0 auto; }
+  .gk-article-comments-title { margin-bottom: 22px; }
+  .gk-comment { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; }
+  .gk-comment-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .gk-comment-author { font: 700 14px var(--font-heading); color: var(--navy-700); }
+  .gk-comment-date { font: 600 12px var(--font-mono); color: var(--ink-500); }
+  .gk-comment-body { margin: 0; font: 400 15px/1.6 var(--font-body); color: var(--ink-700); }
+
+  .gk-comment-form { margin-top: 34px; }
+  .gk-comment-form-title { font: 800 1.2rem var(--font-heading); color: var(--navy-700); margin: 0 0 18px; }
+  .gk-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .gk-field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+  .gk-field label { font: 700 12px var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--navy-700); }
+  .gk-field input, .gk-field textarea { font: 400 15px var(--font-body); padding: 13px 14px; border: 1.5px solid var(--border-strong); border-radius: 6px; background: #fff; color: var(--ink-900); outline: none; }
+  .gk-field input:focus, .gk-field textarea:focus { border-color: var(--navy-700); }
+  .gk-form-errors { color: #b3261e; font: 500 14px var(--font-body); margin-bottom: 16px; }
+  .gk-form-success { color: var(--navy-700); background: var(--gold-100, rgba(254,197,38,.2)); border-radius: 6px; padding: 12px 16px; font: 600 14px var(--font-body); margin-bottom: 16px; }
+
+  .gk-pagination { display: flex; justify-content: center; gap: 8px; margin-top: 24px; font: 600 14px var(--font-mono); }
+  .gk-pagination a, .gk-pagination span { color: var(--navy-500); text-decoration: none; padding: 8px 12px; border-radius: 6px; }
+  .gk-pagination a:hover { background: var(--paper-2); }
+  .gk-pagination .current { color: var(--navy-700); background: var(--gold-500); }
+
+  @media (max-width: 860px) {
+    .gk-article-hero { padding: 28px 18px 32px; }
+    .gk-article-title { font-size: 2rem; }
+    .gk-article-feature { padding: 24px 18px 0; }
+    .gk-article-rte { font-size: 16.5px; }
+    .gk-field-row { grid-template-columns: 1fr; }
+    .gk-article-nav { flex-wrap: wrap; }
+  }
+{% endstylesheet %}
 
 {% schema %}
 {
-  "name": "t:general.article",
-  "settings": []
+  "name": "Blog post",
+  "settings": [
+    { "type": "checkbox", "id": "show_date", "label": "Show date", "default": true },
+    { "type": "checkbox", "id": "show_author", "label": "Show author", "default": true },
+    { "type": "checkbox", "id": "show_tags", "label": "Show tags", "default": true },
+    { "type": "checkbox", "id": "show_share", "label": "Show share links", "default": true }
+  ]
 }
 {% endschema %}

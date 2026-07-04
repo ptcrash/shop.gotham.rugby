@@ -13,7 +13,8 @@
       "type": "gk-hero",
       "settings": {
         "eyebrow": "New drop · Core Essentials",
-        "heading": "Built for the pitch. Made for the city.",
+        "heading": "Built for the pitch.",
+        "heading_accent": "Made for the city.",
         "subheading": "The Club Crest Tee — heavyweight cotton, an embroidered dragon, built to outlast the season.",
         "badge": "New Drop",
         "primary_label": "Shop the drop",

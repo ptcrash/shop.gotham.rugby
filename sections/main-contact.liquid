@@ -1,0 +1,177 @@
+{% comment %}
+  Gotham Knights contact page — navy title band, a branded contact form
+  ({% form 'contact' %}) with a success state, and an optional details sidebar.
+  Assign the "Contact" template to a page to use this section.
+{% endcomment %}
+
+{% assign heading = section.settings.heading | default: page.title %}
+
+<div class="gk-contact">
+  <div class="gk-contact-hero full-width">
+    <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150" class="gk-contact-crest">
+    <div class="gk-band-inner gk-contact-hero-inner">
+      {% if section.settings.show_breadcrumb %}
+        <nav class="gk-breadcrumb" aria-label="Breadcrumb">
+          <a href="{{ routes.root_url }}">Home</a> /
+          <span>{{ heading }}</span>
+        </nav>
+      {% endif %}
+      {% if section.settings.eyebrow != blank %}<div class="gk-eyebrow-gold gk-eyebrow-onnavy">{{ section.settings.eyebrow }}</div>{% endif %}
+      <h1 class="gk-contact-title gk-athletic">{{ heading }}</h1>
+      {% if section.settings.intro != blank %}<p class="gk-contact-intro">{{ section.settings.intro }}</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="gk-band gk-band-paper full-width">
+    <div class="gk-band-inner">
+      <div class="gk-contact-grid{% unless section.blocks.size > 0 %} is-single{% endunless %}">
+        <div class="gk-contact-formwrap">
+          {% if page.content != blank %}
+            <div class="gk-contact-rte rte">{{ page.content }}</div>
+          {% endif %}
+
+          {% form 'contact', class: 'gk-contact-form' %}
+            {% if form.posted_successfully? %}
+              <div class="gk-form-success gk-contact-success" role="status">
+                {{ section.settings.success_message | default: "Thanks — your message is in. We'll get back to you soon." }}
+              </div>
+            {% endif %}
+            {% if form.errors %}
+              <div class="gk-form-errors" role="alert">{{ form.errors | default_errors }}</div>
+            {% endif %}
+
+            <div class="gk-field-row">
+              <div class="gk-field">
+                <label for="contact-name">Name</label>
+                <input type="text" id="contact-name" name="contact[name]" value="{{ form.name }}" autocomplete="name" required>
+              </div>
+              <div class="gk-field">
+                <label for="contact-email">Email</label>
+                <input type="email" id="contact-email" name="contact[email]" value="{{ form.email }}" autocomplete="email" spellcheck="false" required>
+              </div>
+            </div>
+
+            {% if section.settings.show_phone %}
+              <div class="gk-field">
+                <label for="contact-phone">Phone <span class="gk-field-opt">(optional)</span></label>
+                <input type="tel" id="contact-phone" name="contact[phone]" value="{{ form.phone }}" autocomplete="tel">
+              </div>
+            {% endif %}
+
+            <div class="gk-field">
+              <label for="contact-body">Message</label>
+              <textarea id="contact-body" name="contact[body]" rows="6" required>{{ form.body }}</textarea>
+            </div>
+
+            <button type="submit" class="gk-btn gk-btn-primary gk-contact-submit">{{ section.settings.button_label | default: 'Send message' }}</button>
+          {% endform %}
+        </div>
+
+        {% if section.blocks.size > 0 %}
+          <aside class="gk-contact-side">
+            {% for block in section.blocks %}
+              {% case block.type %}
+                {% when 'detail' %}
+                  <div class="gk-contact-detail" {{ block.shopify_attributes }}>
+                    {% if block.settings.label != blank %}<div class="gk-contact-detail-label">{{ block.settings.label }}</div>{% endif %}
+                    <div class="gk-contact-detail-value">{{ block.settings.value }}</div>
+                  </div>
+                {% when 'text' %}
+                  <div class="gk-contact-detail" {{ block.shopify_attributes }}>
+                    <div class="gk-contact-detail-value">{{ block.settings.text }}</div>
+                  </div>
+              {% endcase %}
+            {% endfor %}
+          </aside>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% stylesheet %}
+  .gk-contact-hero { position: relative; background: var(--navy-700); overflow: hidden; padding: 44px 50px 48px; }
+  .gk-contact-crest { position: absolute; top: 50%; right: -3%; transform: translateY(-50%); height: 180%; width: auto; opacity: .06; }
+  .gk-contact-hero-inner { position: relative; }
+  .gk-contact-title { color: #fff; font-size: 3rem; line-height: .95; margin: 0; }
+  .gk-contact-intro { color: var(--navy-100); font: 400 1.1rem/1.55 var(--font-body); max-width: 54ch; margin: 14px 0 0; }
+
+  .gk-contact-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 44px; align-items: start; }
+  .gk-contact-grid.is-single { grid-template-columns: 1fr; max-width: 680px; }
+  .gk-contact-formwrap { max-width: 620px; }
+  .gk-contact-rte { font: 400 16px/1.6 var(--font-body); color: var(--ink-700); margin-bottom: 28px; }
+
+  .gk-contact-form { margin: 0; }
+  .gk-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .gk-field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 18px; }
+  .gk-field label { font: 700 12px var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--navy-700); }
+  .gk-field-opt { color: var(--ink-500); font-weight: 500; text-transform: none; letter-spacing: 0; }
+  .gk-field input, .gk-field textarea {
+    font: 400 15px var(--font-body); padding: 13px 14px; border: 1.5px solid var(--border-strong);
+    border-radius: 6px; background: #fff; color: var(--ink-900); outline: none;
+    transition: border-color var(--dur-fast) var(--ease-standard);
+  }
+  .gk-field input:focus, .gk-field textarea:focus { border-color: var(--navy-700); box-shadow: 0 0 0 3px rgba(13,29,65,.08); }
+  .gk-field textarea { resize: vertical; }
+  .gk-contact-submit { margin-top: 4px; }
+
+  .gk-form-errors { color: #b3261e; font: 500 14px var(--font-body); margin-bottom: 18px; }
+  .gk-form-errors ul { margin: 0; padding-left: 1.2em; }
+  .gk-form-success { color: var(--navy-700); background: rgba(254,197,38,.22); border: 1px solid var(--gold-500); border-radius: 8px; padding: 14px 16px; font: 600 15px var(--font-body); margin-bottom: 20px; }
+
+  .gk-contact-side { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 24px 26px; }
+  .gk-contact-detail { padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .gk-contact-detail:first-child { padding-top: 0; }
+  .gk-contact-detail:last-child { padding-bottom: 0; border-bottom: 0; }
+  .gk-contact-detail-label { font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: .1em; color: var(--gold-700); margin-bottom: 5px; }
+  .gk-contact-detail-value { font: 400 15px/1.5 var(--font-body); color: var(--ink-900); }
+  .gk-contact-detail-value a { color: var(--navy-700); }
+
+  @media (max-width: 860px) {
+    .gk-contact-hero { padding: 28px 18px 32px; }
+    .gk-contact-title { font-size: 2.1rem; }
+    .gk-contact-grid { grid-template-columns: 1fr; gap: 28px; }
+    .gk-field-row { grid-template-columns: 1fr; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Contact form",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Get in touch" },
+    { "type": "text", "id": "heading", "label": "Heading (defaults to page title)", "default": "Contact us" },
+    { "type": "textarea", "id": "intro", "label": "Intro text", "default": "Questions about your order, kit sizing, or the club? Drop us a line." },
+    { "type": "checkbox", "id": "show_breadcrumb", "label": "Show breadcrumb", "default": true },
+    { "type": "checkbox", "id": "show_phone", "label": "Show phone field", "default": true },
+    { "type": "text", "id": "button_label", "label": "Submit button label", "default": "Send message" },
+    { "type": "textarea", "id": "success_message", "label": "Success message", "default": "Thanks — your message is in. We'll get back to you soon." }
+  ],
+  "blocks": [
+    {
+      "type": "detail",
+      "name": "Detail",
+      "settings": [
+        { "type": "text", "id": "label", "label": "Label", "default": "Email" },
+        { "type": "richtext", "id": "value", "label": "Value", "default": "<p>hello@gotham.rugby</p>" }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "Text",
+      "settings": [
+        { "type": "richtext", "id": "text", "label": "Text", "default": "<p>We reply within two business days.</p>" }
+      ]
+    }
+  ],
+  "default": {
+    "blocks": [
+      { "type": "detail", "settings": { "label": "Email", "value": "<p>hello@gotham.rugby</p>" } },
+      { "type": "detail", "settings": { "label": "Find us", "value": "<p>New York City</p>" } },
+      { "type": "detail", "settings": { "label": "Response time", "value": "<p>Within two business days</p>" } }
+    ]
+  },
+  "disabled_on": { "groups": ["header", "footer"] }
+}
+{% endschema %}
+

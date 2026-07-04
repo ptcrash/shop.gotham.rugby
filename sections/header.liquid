@@ -1,60 +1,245 @@
 {% comment %}
-  Gotham Knights storefront header — announcement bar + navy nav with gold
-  underline, logo lockup, primary menu, search/account/cart icons.
-  Ported from the "StoreHeader" component of the Gotham Storefront design.
+  Gotham Knights storefront header — navy nav with gold underline, logo lockup
+  (or a merchant-uploaded logo), primary menu with desktop dropdowns, an
+  accessible mobile slide-in drawer menu, and search / account / cart icons.
+
+  The announcement bar is now its own section (sections/announcement-bar.liquid)
+  wired into the header group, so it is no longer hardcoded here.
 {% endcomment %}
 
 {% liquid
-  assign logo = 'gk-shield-inv.svg'
+  assign menu = section.settings.menu
   assign cart_count = cart.item_count
+  assign drawer_on = section.settings.enable_cart_drawer
+  assign logo_max = section.settings.logo_width | default: 170
 %}
 
 <div class="gk-header full-width">
-  {% if section.settings.announcement != blank %}
-    <div class="gk-announce">{{ section.settings.announcement }}</div>
-  {% endif %}
-
   <header class="gk-nav">
-    <a href="{{ routes.root_url }}" class="gk-brand" aria-label="{{ shop.name }}">
-      {{ logo | inline_asset_content }}
-      <span class="gk-brand-lockup">
-        <span class="gk-brand-name">{{ section.settings.wordmark | default: shop.name }}</span>
-        {% if section.settings.tagline != blank %}
-          <span class="gk-brand-tag">{{ section.settings.tagline }}</span>
-        {% endif %}
-      </span>
+    <button
+      type="button"
+      class="gk-nav-burger"
+      aria-label="Open menu"
+      aria-expanded="false"
+      aria-controls="gk-mobile-nav"
+      data-gk-menu-open
+    >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path></svg>
+    </button>
+
+    <a href="{{ routes.root_url }}" class="gk-brand" aria-label="{{ shop.name | escape }}">
+      {% if section.settings.logo != blank %}
+        {% assign logo_alt = section.settings.logo.alt | default: shop.name | escape %}
+        {% assign logo_style = 'max-width:' | append: logo_max | append: 'px' %}
+        {{
+          section.settings.logo
+          | image_url: width: 480
+          | image_tag:
+            class: 'gk-brand-logo',
+            widths: '160,240,320,400,480',
+            sizes: '170px',
+            alt: logo_alt,
+            style: logo_style
+        }}
+      {% else %}
+        {{ 'gk-shield-inv.svg' | inline_asset_content }}
+        <span class="gk-brand-lockup">
+          <span class="gk-brand-name">{{ section.settings.wordmark | default: shop.name }}</span>
+          {% if section.settings.tagline != blank %}
+            <span class="gk-brand-tag">{{ section.settings.tagline }}</span>
+          {% endif %}
+        </span>
+      {% endif %}
     </a>
 
     <nav class="gk-nav-links" aria-label="Primary">
-      {% for link in section.settings.menu.links %}
-        <a class="gk-navlink{% if link.active or link.child_active %} is-active{% endif %}" href="{{ link.url }}">{{ link.title }}</a>
+      {% for link in menu.links %}
+        {% if link.links.size > 0 %}
+          <div class="gk-navitem gk-has-sub">
+            <a
+              class="gk-navlink{% if link.active or link.child_active %} is-active{% endif %}"
+              href="{{ link.url }}"
+              aria-haspopup="true"
+              aria-expanded="false"
+              data-gk-sub-toggle
+            >
+              {{ link.title }}
+              <svg class="gk-navlink-caret" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+            </a>
+            <div class="gk-submenu" role="menu">
+              {% for child in link.links %}
+                <a class="gk-subnavlink{% if child.active %} is-active{% endif %}" href="{{ child.url }}" role="menuitem">{{ child.title }}</a>
+              {% endfor %}
+            </div>
+          </div>
+        {% else %}
+          <a class="gk-navlink{% if link.active or link.child_active %} is-active{% endif %}" href="{{ link.url }}">{{ link.title }}</a>
+        {% endif %}
       {% endfor %}
     </nav>
 
     <div class="gk-nav-actions">
       <a class="gk-iconbtn" href="{{ routes.search_url }}" aria-label="Search">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.35-4.35"></path></svg>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.35-4.35"></path></svg>
       </a>
       {% if shop.customer_accounts_enabled %}
-        <a class="gk-iconbtn" href="{{ routes.account_url }}" aria-label="Account">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <a class="gk-iconbtn gk-account-link" href="{{ routes.account_url }}" aria-label="Account">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
         </a>
       {% endif %}
-      <a class="gk-iconbtn gk-cart" href="{{ routes.cart_url }}" aria-label="Cart, {{ cart_count }} items">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
-        {% if cart_count > 0 %}<span class="gk-cart-count">{{ cart_count }}</span>{% endif %}
+      <a
+        class="gk-iconbtn gk-cart"
+        href="{{ routes.cart_url }}"
+        aria-label="Cart, {{ cart_count }} items"
+        {% if drawer_on %}data-gk-cart-open{% endif %}
+      >
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        <span class="gk-cart-count{% if cart_count == 0 %} is-empty{% endif %}" data-gk-cart-count>{{ cart_count }}</span>
       </a>
     </div>
   </header>
+
+  {% comment %} ---- Mobile slide-in menu ---- {% endcomment %}
+  <div class="gk-mnav" id="gk-mobile-nav" data-gk-menu hidden>
+    <div class="gk-mnav-backdrop" data-gk-menu-close></div>
+    <div class="gk-mnav-panel" role="dialog" aria-modal="true" aria-label="Menu">
+      <div class="gk-mnav-head">
+        <a href="{{ routes.root_url }}" class="gk-mnav-brand" aria-label="{{ shop.name | escape }}">
+          {{ 'gk-shield-inv.svg' | inline_asset_content }}
+          <span class="gk-mnav-brand-name">{{ section.settings.wordmark | default: shop.name }}</span>
+        </a>
+        <button type="button" class="gk-mnav-close" aria-label="Close menu" data-gk-menu-close>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+        </button>
+      </div>
+
+      <nav class="gk-mnav-links" aria-label="Mobile primary">
+        {% for link in menu.links %}
+          {% if link.links.size > 0 %}
+            <details class="gk-mnav-group">
+              <summary class="gk-mnav-link gk-mnav-summary">
+                {{ link.title }}
+                <svg class="gk-mnav-caret" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+              </summary>
+              <div class="gk-mnav-sub">
+                <a class="gk-mnav-sublink" href="{{ link.url }}">All {{ link.title }}</a>
+                {% for child in link.links %}
+                  <a class="gk-mnav-sublink" href="{{ child.url }}">{{ child.title }}</a>
+                {% endfor %}
+              </div>
+            </details>
+          {% else %}
+            <a class="gk-mnav-link" href="{{ link.url }}">{{ link.title }}</a>
+          {% endif %}
+        {% endfor %}
+      </nav>
+
+      <div class="gk-mnav-foot">
+        <a class="gk-iconbtn gk-mnav-fbtn" href="{{ routes.search_url }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.35-4.35"></path></svg> Search</a>
+        {% if shop.customer_accounts_enabled %}
+          <a class="gk-iconbtn gk-mnav-fbtn" href="{{ routes.account_url }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Account</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 </div>
+
+<script>
+  (function () {
+    var root = document.currentScript.previousElementSibling;
+    while (root && !(root.classList && root.classList.contains('gk-header'))) {
+      root = root.previousElementSibling;
+    }
+    if (!root) return;
+
+    /* ---- Mobile drawer menu ---- */
+    var menu = root.querySelector('[data-gk-menu]');
+    var openBtn = root.querySelector('[data-gk-menu-open]');
+    var panel = menu ? menu.querySelector('.gk-mnav-panel') : null;
+    var lastFocus = null;
+
+    function focusables() {
+      if (!panel) return [];
+      return Array.prototype.slice.call(
+        panel.querySelectorAll('a[href], button:not([disabled]), summary, input, [tabindex]:not([tabindex="-1"])')
+      ).filter(function (el) { return el.offsetParent !== null; });
+    }
+    function openMenu() {
+      if (!menu) return;
+      lastFocus = document.activeElement;
+      menu.hidden = false;
+      requestAnimationFrame(function () { menu.classList.add('is-open'); });
+      document.documentElement.classList.add('gk-no-scroll');
+      if (openBtn) openBtn.setAttribute('aria-expanded', 'true');
+      var f = focusables();
+      if (f.length) f[0].focus();
+    }
+    function closeMenu() {
+      if (!menu) return;
+      menu.classList.remove('is-open');
+      document.documentElement.classList.remove('gk-no-scroll');
+      if (openBtn) openBtn.setAttribute('aria-expanded', 'false');
+      var onEnd = function () {
+        menu.hidden = true;
+        menu.removeEventListener('transitionend', onEnd);
+      };
+      menu.addEventListener('transitionend', onEnd);
+      /* fallback if no transition fires */
+      setTimeout(function () { if (!menu.classList.contains('is-open')) menu.hidden = true; }, 350);
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    if (openBtn) openBtn.addEventListener('click', openMenu);
+    if (menu) {
+      menu.querySelectorAll('[data-gk-menu-close]').forEach(function (b) {
+        b.addEventListener('click', closeMenu);
+      });
+      /* close when a real navigation link is chosen */
+      menu.querySelectorAll('.gk-mnav-link:not(.gk-mnav-summary), .gk-mnav-sublink').forEach(function (a) {
+        a.addEventListener('click', closeMenu);
+      });
+      menu.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { closeMenu(); return; }
+        if (e.key === 'Tab') {
+          var f = focusables();
+          if (!f.length) return;
+          var first = f[0], last = f[f.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      });
+    }
+
+    /* ---- Desktop dropdown toggles (click/keyboard; hover is CSS) ---- */
+    root.querySelectorAll('[data-gk-sub-toggle]').forEach(function (toggle) {
+      var item = toggle.closest('.gk-has-sub');
+      toggle.addEventListener('click', function (e) {
+        /* On touch / no-hover, first tap opens the submenu instead of navigating. */
+        if (window.matchMedia('(hover: none)').matches && toggle.getAttribute('aria-expanded') !== 'true') {
+          e.preventDefault();
+          closeAllSubs();
+          item.classList.add('is-open');
+          toggle.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+    function closeAllSubs() {
+      root.querySelectorAll('.gk-has-sub.is-open').forEach(function (i) {
+        i.classList.remove('is-open');
+        var t = i.querySelector('[data-gk-sub-toggle]');
+        if (t) t.setAttribute('aria-expanded', 'false');
+      });
+    }
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.gk-has-sub')) closeAllSubs();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeAllSubs();
+    });
+  })();
+</script>
 
 {% stylesheet %}
   .gk-header { font-family: var(--font-body); }
-  .gk-announce {
-    background: var(--navy-800); color: var(--gold-400); text-align: center;
-    padding: 9px 16px; font: 700 11px var(--font-body);
-    letter-spacing: .14em; text-transform: uppercase;
-  }
   .gk-nav {
     display: flex; align-items: center; justify-content: space-between; gap: 18px;
     padding: 14px 28px; background: var(--navy-700);
@@ -62,6 +247,7 @@
   }
   .gk-brand { display: flex; align-items: center; gap: 11px; text-decoration: none; flex: none; }
   .gk-brand svg { height: 36px; width: auto; display: block; }
+  .gk-brand-logo { height: auto; width: auto; max-height: 44px; display: block; }
   .gk-brand-lockup { display: flex; flex-direction: column; line-height: 1; }
   .gk-brand-name {
     font-family: var(--font-wordmark); color: #fff; font-size: 19px;
@@ -71,14 +257,43 @@
     font: 700 9px var(--font-body); letter-spacing: .28em; text-transform: uppercase;
     color: var(--gold-400); margin-top: 3px;
   }
+
   .gk-nav-links { display: flex; align-items: center; gap: 2px; }
+  .gk-navitem { position: relative; }
   .gk-navlink {
+    display: inline-flex; align-items: center; gap: 4px;
     font: 700 12.5px var(--font-body); text-transform: uppercase; letter-spacing: .09em;
     color: #fff; padding: 9px 14px; border-radius: 6px;
     text-decoration: none; transition: color var(--dur-fast) var(--ease-standard);
   }
   .gk-navlink:hover { color: var(--gold-400); }
   .gk-navlink.is-active { color: var(--gold-500); }
+  .gk-navlink-caret { transition: transform var(--dur-fast) var(--ease-standard); }
+
+  .gk-submenu {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
+    min-width: 210px; padding: 8px; display: flex; flex-direction: column; gap: 2px;
+    background: var(--navy-700); border: 1px solid var(--navy-500);
+    border-top: 2px solid var(--gold-500);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    box-shadow: 0 18px 40px rgba(7,17,42,.35);
+    opacity: 0; visibility: hidden; transform: translateY(-6px);
+    transition: opacity var(--dur-fast) var(--ease-standard), transform var(--dur-fast) var(--ease-standard), visibility var(--dur-fast);
+  }
+  .gk-has-sub:hover .gk-submenu,
+  .gk-has-sub:focus-within .gk-submenu,
+  .gk-has-sub.is-open .gk-submenu {
+    opacity: 1; visibility: visible; transform: translateY(0);
+  }
+  .gk-has-sub:hover .gk-navlink-caret,
+  .gk-has-sub.is-open .gk-navlink-caret { transform: rotate(180deg); }
+  .gk-subnavlink {
+    font: 600 12.5px var(--font-body); letter-spacing: .04em;
+    color: var(--navy-100); padding: 9px 12px; border-radius: 6px; text-decoration: none;
+    transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
+  }
+  .gk-subnavlink:hover, .gk-subnavlink.is-active { background: var(--navy-600); color: #fff; }
+
   .gk-nav-actions { display: flex; align-items: center; gap: 4px; color: #fff; }
   .gk-iconbtn {
     position: relative; display: grid; place-items: center; width: 38px; height: 38px;
@@ -92,11 +307,74 @@
     background: var(--gold-500); color: var(--navy-700); font: 800 10px var(--font-mono);
     border-radius: 99px; display: grid; place-items: center; padding: 0 4px;
   }
+  .gk-cart-count.is-empty { display: none; }
+
+  /* Hamburger — hidden on desktop */
+  .gk-nav-burger {
+    display: none; place-items: center; width: 40px; height: 40px; flex: none;
+    background: transparent; border: 0; color: #fff; cursor: pointer; border-radius: 8px;
+  }
+  .gk-nav-burger:hover { background: rgba(255,255,255,.12); }
+
+  /* Mobile slide-in menu */
+  .gk-mnav { position: fixed; inset: 0; z-index: 80; }
+  .gk-mnav[hidden] { display: none; }
+  .gk-mnav-backdrop {
+    position: absolute; inset: 0; background: rgba(7,17,42,.55);
+    opacity: 0; transition: opacity var(--dur-base) var(--ease-standard);
+  }
+  .gk-mnav.is-open .gk-mnav-backdrop { opacity: 1; }
+  .gk-mnav-panel {
+    position: absolute; top: 0; left: 0; bottom: 0; width: min(86vw, 340px);
+    display: flex; flex-direction: column; background: var(--navy-700);
+    border-right: 2px solid var(--gold-500);
+    transform: translateX(-100%);
+    transition: transform var(--dur-base) var(--ease-out);
+    overflow-y: auto;
+  }
+  .gk-mnav.is-open .gk-mnav-panel { transform: translateX(0); }
+  .gk-mnav-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px; border-bottom: 1px solid var(--navy-500);
+  }
+  .gk-mnav-brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+  .gk-mnav-brand svg { height: 30px; width: auto; }
+  .gk-mnav-brand-name { font-family: var(--font-wordmark); color: #fff; font-size: 17px; letter-spacing: -.05em; text-transform: uppercase; }
+  .gk-mnav-close { display: grid; place-items: center; width: 40px; height: 40px; background: transparent; border: 0; color: #fff; cursor: pointer; border-radius: 8px; }
+  .gk-mnav-close:hover { background: rgba(255,255,255,.12); }
+  .gk-mnav-links { display: flex; flex-direction: column; padding: 8px 0; flex: 1; }
+  .gk-mnav-link {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; text-decoration: none; cursor: pointer;
+    font: 700 15px var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: #fff;
+    border: 0; background: transparent; width: 100%;
+  }
+  .gk-mnav-summary { list-style: none; }
+  .gk-mnav-summary::-webkit-details-marker { display: none; }
+  .gk-mnav-link:hover { color: var(--gold-400); }
+  .gk-mnav-caret { transition: transform var(--dur-fast) var(--ease-standard); flex: none; }
+  .gk-mnav-group[open] .gk-mnav-caret { transform: rotate(180deg); }
+  .gk-mnav-sub { display: flex; flex-direction: column; padding: 0 0 8px; background: var(--navy-800); }
+  .gk-mnav-sublink { padding: 11px 20px 11px 32px; text-decoration: none; font: 600 13.5px var(--font-body); letter-spacing: .03em; color: var(--navy-100); }
+  .gk-mnav-sublink:hover { color: #fff; }
+  .gk-mnav-foot { display: flex; gap: 8px; padding: 16px 16px 22px; border-top: 1px solid var(--navy-500); }
+  .gk-mnav-fbtn { width: auto; gap: 9px; padding: 0 14px; height: 44px; font: 700 12px var(--font-body); text-transform: uppercase; letter-spacing: .08em; background: var(--navy-600); }
+  .gk-mnav-fbtn:hover { background: var(--navy-500); }
+
+  html.gk-no-scroll { overflow: hidden; }
+
   @media (max-width: 860px) {
     .gk-nav { padding: 11px 15px; }
     .gk-nav-links { display: none; }
+    .gk-nav-burger { display: grid; }
+    .gk-brand { gap: 9px; }
     .gk-brand svg { height: 30px; }
+    .gk-brand-logo { max-height: 34px; }
     .gk-brand-tag { display: none; }
+    .gk-brand { margin-right: auto; margin-left: 4px; }
+  }
+  @media (min-width: 861px) {
+    .gk-mnav { display: none !important; }
   }
 {% endstylesheet %}
 
@@ -105,15 +383,30 @@
   "name": "t:general.header",
   "settings": [
     {
-      "type": "text",
-      "id": "announcement",
-      "label": "Announcement bar",
-      "default": "New drop — the 25 Years capsule · Free US shipping over $75 · Every order backs the club"
+      "type": "header",
+      "content": "Logo"
+    },
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "Logo image",
+      "info": "Leave empty to use the built-in crest + wordmark lockup."
+    },
+    {
+      "type": "range",
+      "id": "logo_width",
+      "label": "Logo max width",
+      "min": 80,
+      "max": 320,
+      "step": 10,
+      "unit": "px",
+      "default": 170
     },
     {
       "type": "text",
       "id": "wordmark",
       "label": "Wordmark",
+      "info": "Used by the built-in lockup when no logo image is set.",
       "default": "Gotham Knights"
     },
     {
@@ -123,16 +416,26 @@
       "default": "The Storefront"
     },
     {
-      "type": "link_list",
-      "id": "menu",
-      "label": "t:labels.menu",
-      "default": "main-menu"
+      "type": "header",
+      "content": "Navigation"
     },
     {
       "type": "link_list",
-      "id": "customer_account_menu",
-      "label": "t:labels.customer_account_menu",
-      "default": "customer-account-main-menu"
+      "id": "menu",
+      "label": "t:labels.menu",
+      "info": "Two-level menus show as dropdowns on desktop and expandable groups on mobile.",
+      "default": "main-menu"
+    },
+    {
+      "type": "header",
+      "content": "Cart"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_cart_drawer",
+      "label": "Open cart in a slide-out drawer",
+      "info": "Requires the Cart drawer section in the header group. When off, the cart icon links to the cart page.",
+      "default": true
     }
   ]
 }

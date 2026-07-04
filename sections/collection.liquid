@@ -4,72 +4,107 @@
   https://shopify.dev/docs/storefronts/themes/architecture/templates/collection
 {% endcomment %}
 
+{% liquid
+  assign ratio = section.settings.image_ratio
+  case ratio
+    when 'square'
+      assign ratio_value = '1/1'
+    when 'landscape'
+      assign ratio_value = '4/3'
+    when 'tall'
+      assign ratio_value = '3/4'
+    else
+      assign ratio_value = '4/5'
+  endcase
+  assign show_toolbar = false
+  if section.settings.show_filters or section.settings.show_sort
+    assign show_toolbar = true
+  endif
+%}
+
 <div class="gk-collection">
-  <div class="gk-col-hero full-width">
-    <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150" class="gk-col-hero-crest">
-    <div class="gk-band-inner gk-col-hero-inner">
-      <nav class="gk-breadcrumb" aria-label="Breadcrumb">
-        <a href="{{ routes.root_url }}">Home</a> /
-        <a href="{{ routes.collections_url }}">Collections</a> /
-        <span>{{ collection.title }}</span>
-      </nav>
-      <h1 class="gk-col-title gk-athletic">{{ collection.title }}</h1>
-      {% if collection.description != blank %}
-        <div class="gk-col-desc">{{ collection.description | strip_html | truncatewords: 40 }}</div>
-      {% endif %}
-    </div>
-  </div>
-
-  {% paginate collection.products by 8 %}
-    <div class="gk-col-toolbar full-width">
-      <div class="gk-band-inner gk-toolbar-inner">
-        <div class="gk-toolbar-filters">
-          <span class="gk-toolbar-label">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
-            Filter
-          </span>
-          {% for filter in collection.filters %}
-            {% if filter.type == 'list' or filter.type == 'boolean' %}
-              <details class="gk-filter-pill">
-                <summary>{{ filter.label }}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
-                </summary>
-                <div class="gk-filter-menu">
-                  {% for value in filter.values %}
-                    <a href="{{ value.url_to_add }}" class="gk-filter-value{% if value.active %} is-active{% endif %}">{{ value.label }} ({{ value.count }})</a>
-                  {% endfor %}
-                </div>
-              </details>
-            {% endif %}
-          {% endfor %}
-
-          {% for filter in collection.filters %}
-            {% for value in filter.active_values %}
-              <a class="gk-filter-chip" href="{{ value.url_to_remove }}">{{ value.label }}<span aria-hidden="true">×</span></a>
-            {% endfor %}
-          {% endfor %}
-        </div>
-
-        <div class="gk-toolbar-right">
-          <span class="gk-toolbar-count">{{ collection.products_count }} products</span>
-          <form class="gk-sort" method="get">
-            {% assign sort_by = collection.sort_by | default: collection.default_sort_by %}
-            <label class="gk-sort-label" for="SortBy">Sort:</label>
-            <select name="sort_by" id="SortBy" onchange="this.form.submit()">
-              {% for option in collection.sort_options %}
-                <option value="{{ option.value }}" {% if option.value == sort_by %}selected{% endif %}>{{ option.name }}</option>
-              {% endfor %}
-            </select>
-            {% for tag in current_tags %}<input type="hidden" name="tags" value="{{ tag }}">{% endfor %}
-          </form>
-        </div>
+  {% if section.settings.show_hero %}
+    <div class="gk-col-hero full-width">
+      <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150" class="gk-col-hero-crest">
+      <div class="gk-band-inner gk-col-hero-inner">
+        <nav class="gk-breadcrumb" aria-label="Breadcrumb">
+          <a href="{{ routes.root_url }}">Home</a> /
+          <a href="{{ routes.collections_url }}">Collections</a> /
+          <span>{{ collection.title }}</span>
+        </nav>
+        <h1 class="gk-col-title gk-athletic">{{ collection.title }}</h1>
+        {% if section.settings.show_description and collection.description != blank %}
+          <div class="gk-col-desc">{{ collection.description | strip_html | truncatewords: 40 }}</div>
+        {% endif %}
       </div>
     </div>
+  {% endif %}
+
+  {% paginate collection.products by section.settings.products_per_page %}
+    {% if show_toolbar %}
+      <div class="gk-col-toolbar full-width">
+        <div class="gk-band-inner gk-toolbar-inner">
+          {% if section.settings.show_filters %}
+            <div class="gk-toolbar-filters">
+              <span class="gk-toolbar-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                Filter
+              </span>
+              {% for filter in collection.filters %}
+                {% if filter.type == 'list' or filter.type == 'boolean' %}
+                  <details class="gk-filter-pill">
+                    <summary>{{ filter.label }}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+                    </summary>
+                    <div class="gk-filter-menu">
+                      {% for value in filter.values %}
+                        <a href="{{ value.url_to_add }}" class="gk-filter-value{% if value.active %} is-active{% endif %}">{{ value.label }} ({{ value.count }})</a>
+                      {% endfor %}
+                    </div>
+                  </details>
+                {% endif %}
+              {% endfor %}
+
+              {% for filter in collection.filters %}
+                {% for value in filter.active_values %}
+                  <a class="gk-filter-chip" href="{{ value.url_to_remove }}">{{ value.label }}<span aria-hidden="true">×</span></a>
+                {% endfor %}
+              {% endfor %}
+            </div>
+          {% else %}
+            <span></span>
+          {% endif %}
+
+          <div class="gk-toolbar-right">
+            <span class="gk-toolbar-count">{{ collection.products_count }} products</span>
+            {% if section.settings.show_sort %}
+              <form class="gk-sort" method="get">
+                {% assign sort_by = collection.sort_by | default: collection.default_sort_by %}
+                <label class="gk-sort-label" for="SortBy">Sort:</label>
+                <select name="sort_by" id="SortBy" onchange="this.form.submit()">
+                  {% for option in collection.sort_options %}
+                    <option value="{{ option.value }}" {% if option.value == sort_by %}selected{% endif %}>{{ option.name }}</option>
+                  {% endfor %}
+                </select>
+                {% for tag in current_tags %}<input type="hidden" name="tags" value="{{ tag }}">{% endfor %}
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
 
     <div class="gk-band gk-band-paper full-width">
       <div class="gk-band-inner">
+        {% if section.blocks.size > 0 %}
+          {% for block in section.blocks %}
+            {% if block.type == '@app' %}
+              {% render block %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
         {% if collection.products.size > 0 %}
-          <div class="gk-pgrid">
+          <div class="gk-pgrid gk-col-grid" style="--gk-card-ratio: {{ ratio_value }}">
             {% for product in collection.products %}
               {% render 'product-card', product: product %}
             {% endfor %}
@@ -134,6 +169,9 @@
     border-radius: 6px; background: #fff; color: var(--navy-700); cursor: pointer;
   }
 
+  .gk-col-grid .gk-pcard-img,
+  .gk-col-grid .gk-pcard-standin { aspect-ratio: var(--gk-card-ratio, 4/5); }
+
   .gk-loadmore { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 44px; }
   .gk-loadmore-count { font: 600 12px var(--font-mono); color: var(--ink-500); }
   .gk-col-empty { text-align: center; padding: 40px 0; color: var(--ink-500); font-size: 1rem; }
@@ -148,7 +186,70 @@
 
 {% schema %}
 {
-  "name": "t:general.collection",
-  "settings": []
+  "name": "Collection page",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "Products per page",
+      "min": 4,
+      "max": 24,
+      "step": 4,
+      "default": 8
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "Product image ratio",
+      "default": "portrait",
+      "options": [
+        { "value": "portrait", "label": "Portrait (4:5)" },
+        { "value": "tall", "label": "Tall (3:4)" },
+        { "value": "square", "label": "Square (1:1)" },
+        { "value": "landscape", "label": "Landscape (4:3)" }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "Elements"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_hero",
+      "label": "Show collection hero",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "Show collection description in hero",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_filters",
+      "label": "Show filters",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sort",
+      "label": "Show sort dropdown",
+      "default": true
+    }
+  ],
+  "blocks": [
+    { "type": "@app" }
+  ],
+  "presets": [
+    { "name": "Collection page" }
+  ],
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  }
 }
 {% endschema %}

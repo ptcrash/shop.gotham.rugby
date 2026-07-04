@@ -21,7 +21,12 @@
 
   <div class="gk-band gk-band-paper full-width">
     <div class="gk-band-inner">
-      <div class="gk-tiles gk-collections-grid">
+      {% for block in section.blocks %}
+        {% if block.type == '@app' %}
+          {% render block %}
+        {% endif %}
+      {% endfor %}
+      <div class="gk-tiles gk-collections-grid" style="--gk-cols: {{ section.settings.columns }}">
         {% assign styles = 'dark,light,stripes,anniversary' | split: ',' %}
         {% for collection in collections %}
           {% liquid
@@ -71,22 +76,37 @@
   .gk-breadcrumb span { color: var(--gold-400); }
   .gk-col-title { color: #fff; font-size: 3rem; line-height: .95; margin: 0; }
   .gk-col-desc { color: var(--navy-100); font-size: 1.1rem; line-height: 1.55; max-width: 60ch; margin: 14px 0 0; }
-  .gk-collections-grid { grid-auto-rows: 300px; }
+  .gk-collections-grid { grid-auto-rows: 300px; grid-template-columns: repeat(var(--gk-cols, 4), 1fr); }
   .gk-collections-empty { color: var(--ink-500); font-size: 1rem; }
   @media (max-width: 860px) {
     .gk-col-hero { padding: 26px 18px 30px; }
     .gk-col-title { font-size: 2.1rem; }
-    .gk-collections-grid { grid-auto-rows: 170px; }
+    .gk-collections-grid { grid-auto-rows: 170px; grid-template-columns: repeat(2, 1fr); }
   }
 {% endstylesheet %}
 
 {% schema %}
 {
-  "name": "t:general.collections_grid",
+  "name": "Collections list",
   "settings": [
     { "type": "text", "id": "heading", "label": "Heading", "default": "Collections" },
-    { "type": "text", "id": "subheading", "label": "Subheading", "default": "Every kit, sorted by squad — from Core Essentials to the 25 Years capsule." }
+    { "type": "text", "id": "subheading", "label": "Subheading", "default": "Every kit, sorted by squad — from Core Essentials to the 25 Years capsule." },
+    {
+      "type": "range",
+      "id": "columns",
+      "label": "Columns on desktop",
+      "min": 2,
+      "max": 5,
+      "step": 1,
+      "default": 4
+    }
   ],
-  "presets": [{ "name": "t:general.collections_grid" }]
+  "blocks": [
+    { "type": "@app" }
+  ],
+  "presets": [{ "name": "Collections list" }],
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  }
 }
 {% endschema %}

@@ -14,6 +14,14 @@
     "footer": {
       "type": "footer",
       "blocks": {
+        "instagram": {
+          "type": "social",
+          "settings": { "platform": "instagram", "url": "" }
+        },
+        "tiktok": {
+          "type": "social",
+          "settings": { "platform": "tiktok", "url": "" }
+        },
         "shop": {
           "type": "link_column",
           "settings": { "heading": "Shop", "menu": "footer" }
@@ -27,13 +35,21 @@
           "settings": { "heading": "Help", "menu": "" }
         }
       },
-      "block_order": ["shop", "club", "help"],
+      "block_order": ["instagram", "tiktok", "shop", "club", "help"],
       "settings": {
         "show_payment_icons": true
+      }
+    },
+    "gk-popup": {
+      "type": "gk-popup",
+      "settings": {
+        "enable": false
       }
     }
   },
   "order": [
-    "footer"
+    "footer",
+    "gk-popup"
   ]
 }
+

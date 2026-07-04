@@ -1,43 +1,133 @@
 {% comment %}
-  Gotham Knights storefront footer — Pride rule, brand column with socials,
-  up to three link columns, and a bottom bar.
-  Ported from the "StoreFooter" component of the Gotham Storefront design.
+  Gotham Knights storefront footer — Pride rule, brand column with configurable
+  socials + logo, up to three link columns, an optional country/currency +
+  language selector, and a bottom bar. Ported from the "StoreFooter" component
+  of the Gotham Storefront design. Fully theme-editor configurable.
 {% endcomment %}
 
 <footer class="gk-footer full-width">
   <hr class="gk-pride-rule gk-footer-rule">
   <div class="gk-footer-main">
     <div class="gk-footer-brand">
-      <a href="{{ routes.root_url }}" class="gk-footer-lockup" aria-label="{{ shop.name }}">
-        <img src="{{ 'gk-logo-horizontal.svg' | asset_url }}" alt="{{ shop.name | escape }}" width="271" height="105">
+      <a href="{{ routes.root_url }}" class="gk-footer-lockup" aria-label="{{ shop.name | escape }}">
+        {% if section.settings.logo != blank %}
+          {%- assign logo_alt = section.settings.logo.alt | default: shop.name -%}
+          {%- assign logo_w = section.settings.logo_width | default: 271 -%}
+          {%- assign logo_ratio = section.settings.logo.aspect_ratio -%}
+          {%- if logo_ratio == blank or logo_ratio == 0 -%}
+            {%- assign logo_h = logo_w -%}
+          {%- else -%}
+            {%- assign logo_h = logo_w | divided_by: logo_ratio | ceil -%}
+          {%- endif -%}
+          <img src="{{ section.settings.logo | image_url: width: 542 }}" alt="{{ logo_alt | escape }}" width="{{ logo_w }}" height="{{ logo_h }}" loading="lazy">
+        {% else %}
+          <img src="{{ 'gk-logo-horizontal.svg' | asset_url }}" alt="{{ shop.name | escape }}" width="271" height="105" loading="lazy">
+        {% endif %}
       </a>
       {% if section.settings.blurb != blank %}
         <p class="gk-footer-blurb">{{ section.settings.blurb }}</p>
       {% endif %}
-      <div class="gk-footer-social">
-        {% if section.settings.instagram != blank %}
-          <a class="gk-flink" href="{{ section.settings.instagram }}" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><path d="M17.5 6.5h.01"></path></svg></a>
-        {% endif %}
-        {% if section.settings.tiktok != blank %}
-          <a class="gk-flink" href="{{ section.settings.tiktok }}" aria-label="TikTok"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M16 8.245a6.5 6.5 0 0 0 3.5 1.02V6.2a3.5 3.5 0 0 1-2.02-1.02A3.5 3.5 0 0 1 16.48 3H13.5v11.25a2.25 2.25 0 1 1-1.7-2.18V9.02a5.25 5.25 0 1 0 4.2 5.14V8.245Z"></path></svg></a>
-        {% endif %}
-        <a class="gk-flink" href="mailto:{{ section.settings.email | default: shop.email }}" aria-label="Email"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 5L2 7"></path></svg></a>
-      </div>
+
+      {%- assign social_count = 0 -%}
+      {%- for block in section.blocks -%}{%- if block.type == 'social' and block.settings.url != blank -%}{%- assign social_count = social_count | plus: 1 -%}{%- endif -%}{%- endfor -%}
+      {% if social_count > 0 or section.settings.email != blank %}
+        <div class="gk-footer-social">
+          {% for block in section.blocks %}
+            {% if block.type == 'social' and block.settings.url != blank %}
+              {%- assign platform = block.settings.platform -%}
+              {%- assign platform_label = block.settings.platform | capitalize -%}
+              <a class="gk-flink" href="{{ block.settings.url | escape }}" aria-label="{{ platform_label | escape }}" rel="noopener" {{ block.shopify_attributes }}>
+                {%- case platform -%}
+                  {%- when 'instagram' -%}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><path d="M17.5 6.5h.01"></path></svg>
+                  {%- when 'tiktok' -%}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M16 8.245a6.5 6.5 0 0 0 3.5 1.02V6.2a3.5 3.5 0 0 1-2.02-1.02A3.5 3.5 0 0 1 16.48 3H13.5v11.25a2.25 2.25 0 1 1-1.7-2.18V9.02a5.25 5.25 0 1 0 4.2 5.14V8.245Z"></path></svg>
+                  {%- when 'facebook' -%}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12Z"></path></svg>
+                  {%- when 'twitter' -%}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.82l4.71 6.23 5.46-6.23Zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64Z"></path></svg>
+                  {%- when 'youtube' -%}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M23 12s0-3.2-.41-4.73a2.47 2.47 0 0 0-1.74-1.75C19.32 5.1 12 5.1 12 5.1s-7.32 0-8.85.42A2.47 2.47 0 0 0 1.41 7.27C1 8.8 1 12 1 12s0 3.2.41 4.73a2.47 2.47 0 0 0 1.74 1.75c1.53.42 8.85.42 8.85.42s7.32 0 8.85-.42a2.47 2.47 0 0 0 1.74-1.75C23 15.2 23 12 23 12ZM9.75 14.85v-5.7L15 12l-5.25 2.85Z"></path></svg>
+                  {%- when 'linkedin' -%}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29ZM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.8 0 0 .78 0 1.75v20.5C0 23.22.8 24 1.77 24h20.45c.98 0 1.78-.78 1.78-1.75V1.75C24 .78 23.2 0 22.22 0Z"></path></svg>
+                  {%- when 'strava' -%}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M15.39 12.5h2.94L12 24l-6.33-11.5h2.94L12 18.42l3.39-5.92ZM10.09 0 4.5 10.5h3.34L10.09 6l2.24 4.5h3.34L10.09 0Z"></path></svg>
+                  {%- else -%}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                {%- endcase -%}
+              </a>
+            {% endif %}
+          {% endfor %}
+          {% if section.settings.email != blank %}
+            <a class="gk-flink" href="mailto:{{ section.settings.email | escape }}" aria-label="Email">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 5L2 7"></path></svg>
+            </a>
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
 
     <div class="gk-footer-cols">
       {% for block in section.blocks %}
-        <div class="gk-footer-col" {{ block.shopify_attributes }}>
-          <div class="gk-footer-col-head">{{ block.settings.heading }}</div>
-          <div class="gk-footer-col-links">
-            {% for link in block.settings.menu.links %}
-              <a class="gk-flink" href="{{ link.url }}">{{ link.title }}</a>
-            {% endfor %}
+        {% if block.type == 'link_column' %}
+          <div class="gk-footer-col" {{ block.shopify_attributes }}>
+            {% if block.settings.heading != blank %}<div class="gk-footer-col-head">{{ block.settings.heading }}</div>{% endif %}
+            <div class="gk-footer-col-links">
+              {% for link in block.settings.menu.links %}
+                <a class="gk-flink" href="{{ link.url }}">{{ link.title }}</a>
+              {% endfor %}
+            </div>
           </div>
-        </div>
+        {% endif %}
       {% endfor %}
     </div>
   </div>
+
+  {% comment %} ---- Localization: country/currency + language ---- {% endcomment %}
+  {%- assign show_country = section.settings.show_country_selector -%}
+  {%- assign show_language = section.settings.show_language_selector -%}
+  {%- assign has_country = false -%}
+  {%- assign has_language = false -%}
+  {%- if show_country and localization.available_countries.size > 1 -%}{%- assign has_country = true -%}{%- endif -%}
+  {%- if show_language and localization.available_languages.size > 1 -%}{%- assign has_language = true -%}{%- endif -%}
+  {% if has_country or has_language %}
+    <div class="gk-footer-locale">
+      <div class="gk-footer-locale-inner">
+        {% if has_country %}
+          {% form 'localization', id: 'gk-footer-country', class: 'gk-locale-form' %}
+            <label class="gk-locale-label" for="gk-locale-country">Country / region</label>
+            <div class="gk-locale-select">
+              <select name="country_code" id="gk-locale-country" aria-label="Country / region" onchange="this.form.submit()">
+                {% for country in localization.available_countries %}
+                  <option value="{{ country.iso_code }}" {% if country.iso_code == localization.country.iso_code %}selected{% endif %}>
+                    {{ country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})
+                  </option>
+                {% endfor %}
+              </select>
+              <svg class="gk-locale-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+            </div>
+            <noscript><button type="submit" class="gk-locale-go">Go</button></noscript>
+          {% endform %}
+        {% endif %}
+        {% if has_language %}
+          {% form 'localization', id: 'gk-footer-language', class: 'gk-locale-form' %}
+            <label class="gk-locale-label" for="gk-locale-language">Language</label>
+            <div class="gk-locale-select">
+              <select name="locale_code" id="gk-locale-language" aria-label="Language" onchange="this.form.submit()">
+                {% for language in localization.available_languages %}
+                  <option value="{{ language.iso_code }}" lang="{{ language.iso_code }}" {% if language.iso_code == localization.language.iso_code %}selected{% endif %}>
+                    {{ language.endonym_name | capitalize }}
+                  </option>
+                {% endfor %}
+              </select>
+              <svg class="gk-locale-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+            </div>
+            <noscript><button type="submit" class="gk-locale-go">Go</button></noscript>
+          {% endform %}
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
 
   <div class="gk-footer-bottom">
     <div class="gk-footer-bottom-inner">
@@ -63,14 +153,15 @@
   }
   .gk-footer-brand { max-width: 330px; min-width: 230px; }
   .gk-footer-lockup { display: inline-flex; align-items: center; text-decoration: none; }
-  .gk-footer-lockup img { height: 52px; width: auto; display: block; }
+  .gk-footer-lockup img { height: 52px; width: auto; display: block; max-width: 100%; }
   .gk-footer-blurb { margin: 16px 0 18px; font-size: 14px; line-height: 1.6; color: var(--navy-200); }
-  .gk-footer-social { display: flex; gap: 10px; }
+  .gk-footer-social { display: flex; gap: 10px; flex-wrap: wrap; }
   .gk-footer-social a {
     display: grid; place-items: center; width: 38px; height: 38px;
     border: 1px solid rgba(255,255,255,.22); border-radius: 8px; color: var(--navy-200);
-    text-decoration: none; transition: color var(--dur-fast) var(--ease-standard);
+    text-decoration: none; transition: color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard);
   }
+  .gk-footer-social a:hover { border-color: rgba(255,255,255,.5); }
   .gk-footer-cols { display: flex; flex-wrap: wrap; gap: 48px; }
   .gk-footer-col-head {
     font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: .14em;
@@ -78,6 +169,30 @@
   }
   .gk-footer-col-links { display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
   .gk-footer-col-links a { color: var(--navy-200); text-decoration: none; transition: color var(--dur-fast) var(--ease-standard); }
+
+  .gk-footer-locale { border-top: 1px solid rgba(255,255,255,.1); }
+  .gk-footer-locale-inner {
+    max-width: var(--gk-content-width); margin: 0 auto; padding: 20px 26px;
+    display: flex; flex-wrap: wrap; gap: 18px 32px; align-items: flex-end;
+  }
+  .gk-locale-form { margin: 0; display: flex; flex-direction: column; gap: 7px; }
+  .gk-locale-label { font: 700 10px var(--font-body); text-transform: uppercase; letter-spacing: .14em; color: var(--gold-400); }
+  .gk-locale-select { position: relative; display: inline-flex; align-items: center; }
+  .gk-locale-select select {
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    font: 500 13px var(--font-body); color: #fff; background: var(--navy-700);
+    border: 1px solid rgba(255,255,255,.22); border-radius: 6px;
+    padding: 10px 38px 10px 13px; min-width: 200px; cursor: pointer; outline: none;
+    transition: border-color var(--dur-fast) var(--ease-standard);
+  }
+  .gk-locale-select select:hover { border-color: rgba(255,255,255,.5); }
+  .gk-locale-select select:focus-visible { border-color: var(--gold-500); box-shadow: 0 0 0 2px rgba(254,197,38,.4); }
+  .gk-locale-caret { position: absolute; right: 13px; color: var(--navy-200); pointer-events: none; }
+  .gk-locale-go {
+    margin-top: 4px; font: 600 12px var(--font-body); color: var(--navy-700);
+    background: var(--gold-500); border: 0; border-radius: 6px; padding: 8px 16px; cursor: pointer;
+  }
+
   .gk-footer-bottom { border-top: 1px solid rgba(255,255,255,.1); }
   .gk-footer-bottom-inner {
     max-width: var(--gk-content-width); margin: 0 auto; padding: 16px 26px;
@@ -90,17 +205,30 @@
     display: flex; flex-wrap: wrap; gap: 8px;
   }
   .gk-footer-payment svg { height: 24px; width: auto; }
+
+  @media (max-width: 860px) {
+    .gk-footer-main { padding: 32px 18px; gap: 28px; }
+    .gk-footer-cols { gap: 32px; }
+    .gk-locale-select select { min-width: 0; width: 100%; }
+    .gk-locale-form { width: 100%; }
+  }
 {% endstylesheet %}
 
 {% schema %}
 {
   "name": "t:general.footer",
   "settings": [
+    { "type": "header", "content": "Brand" },
+    { "type": "image_picker", "id": "logo", "label": "Footer logo", "info": "Defaults to the bundled Gotham horizontal lockup when empty." },
+    { "type": "range", "id": "logo_width", "label": "Logo width (px)", "min": 120, "max": 360, "step": 10, "unit": "px", "default": 270 },
     { "type": "text", "id": "wordmark", "label": "Wordmark", "default": "Gotham Knights" },
     { "type": "textarea", "id": "blurb", "label": "Brand blurb", "default": "New York City's inclusive rugby club. Built for the pitch, made for the city — every order backs the squad." },
-    { "type": "url", "id": "instagram", "label": "Instagram URL" },
-    { "type": "url", "id": "tiktok", "label": "TikTok URL" },
-    { "type": "text", "id": "email", "label": "Contact email" },
+    { "type": "text", "id": "email", "label": "Contact email", "info": "Shown as a mail link in the social row." },
+    { "type": "header", "content": "Localization" },
+    { "type": "paragraph", "content": "Selectors only appear when more than one country or language is enabled in Settings → Markets / Languages." },
+    { "type": "checkbox", "id": "show_country_selector", "label": "Show country / currency selector", "default": true },
+    { "type": "checkbox", "id": "show_language_selector", "label": "Show language selector", "default": true },
+    { "type": "header", "content": "Bottom bar" },
     { "type": "text", "id": "copyright_tag", "label": "Copyright tagline", "default": "All bodies, all levels." },
     { "type": "text", "id": "support_note", "label": "Support note", "default": "Every purchase supports the club. Not a tax-deductible donation." },
     { "type": "checkbox", "id": "show_payment_icons", "label": "t:labels.show_payment_icons", "default": true }
@@ -109,15 +237,34 @@
     {
       "type": "link_column",
       "name": "Link column",
+      "limit": 3,
       "settings": [
         { "type": "text", "id": "heading", "label": "Heading", "default": "Shop" },
         { "type": "link_list", "id": "menu", "label": "Menu" }
       ]
+    },
+    {
+      "type": "social",
+      "name": "Social link",
+      "settings": [
+        { "type": "select", "id": "platform", "label": "Platform", "default": "instagram", "options": [
+          { "value": "instagram", "label": "Instagram" },
+          { "value": "tiktok", "label": "TikTok" },
+          { "value": "facebook", "label": "Facebook" },
+          { "value": "twitter", "label": "X / Twitter" },
+          { "value": "youtube", "label": "YouTube" },
+          { "value": "linkedin", "label": "LinkedIn" },
+          { "value": "strava", "label": "Strava" },
+          { "value": "link", "label": "Other / generic link" }
+        ] },
+        { "type": "url", "id": "url", "label": "URL" }
+      ]
     }
   ],
-  "max_blocks": 3,
   "default": {
     "blocks": [
+      { "type": "social", "settings": { "platform": "instagram" } },
+      { "type": "social", "settings": { "platform": "tiktok" } },
       { "type": "link_column", "settings": { "heading": "Shop" } },
       { "type": "link_column", "settings": { "heading": "Club" } },
       { "type": "link_column", "settings": { "heading": "Help" } }
@@ -125,3 +272,4 @@
   }
 }
 {% endschema %}
+

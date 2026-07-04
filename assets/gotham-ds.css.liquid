@@ -150,6 +150,43 @@ body.gk {
    overridden into the dark body color. */
 .gk :where(a) { color: inherit; }
 
+/* ============================================================
+   Accessibility base
+   ============================================================ */
+/* Global keyboard focus ring — gold, 3px, offset. Applies to every
+   focusable element that isn't already given a bespoke focus style. */
+.gk :focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* "Skip to content" link — visually hidden until it receives keyboard focus. */
+.skip-to-content-link {
+  position: absolute;
+  top: 0;
+  left: -9999px;
+  z-index: 1000;
+  padding: 12px 20px;
+  background: var(--navy-700);
+  color: #fff;
+  font: var(--fw-bold) 14px/1 var(--font-body);
+  text-decoration: none;
+  border-radius: 0 0 var(--radius-sm) 0;
+}
+.skip-to-content-link:focus {
+  left: 0;
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+/* The main-content wrapper is programmatically focusable (tabindex -1) for the
+   skip link; never show a focus ring when it is focused via the skip link. */
+#main-content:focus { outline: none; }
+
+/* CONTRAST NOTE: --gold-500 (#fec526) on --paper (#fbf7ee) fails WCAG AA for
+   small text. For gold text on a light/paper surface, use --gold-700 (see
+   .gk-eyebrow-gold). Reserve --gold-500 for large display type, fills, and
+   text on the navy surface. */
+
 /* Brand utilities */
 .gk-athletic {
   font-family: var(--font-athletic);

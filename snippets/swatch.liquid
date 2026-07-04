@@ -1,0 +1,60 @@
+{% comment %}
+  Gotham Knights color swatch helper — reused by product cards and the PDP.
+
+  Resolves an option value to a visible swatch. Prefers Shopify's NATIVE swatch
+  metafields (value.swatch.color / value.swatch.image) when a merchant has set
+  them up in the admin; otherwise falls back to a keyword → brand-hex table so
+  swatches still render on stores that never configured native swatches.
+
+  @param {product_option_value|string} value   (required) the option value
+  @param {string}  [mode]      'pdp' (interactive button) or 'card' (display span). Default 'card'.
+  @param {boolean} [selected]  whether this value is currently selected (pdp only)
+  @param {number}  [position]  1-based option position, used for data-option (pdp only)
+{% endcomment %}
+{%- liquid
+  assign v_name = value.name | default: value
+  assign c = v_name | downcase
+  assign sw = value.swatch
+  assign swatch_image = null
+  assign swatch_color = ''
+
+  if sw
+    if sw.image
+      assign swatch_image = sw.image
+    elsif sw.color
+      assign swatch_color = sw.color
+    endif
+  endif
+
+  if swatch_color == '' and swatch_image == null
+    assign hex = '#5d6473'
+    if c contains 'navy' or c contains 'blue'
+      assign hex = '#0d1d41'
+    elsif c contains 'cream' or c contains 'sand' or c contains 'natural' or c contains 'ivory'
+      assign hex = '#f3ecdc'
+    elsif c contains 'gold' or c contains 'yellow'
+      assign hex = '#fec526'
+    elsif c contains 'white'
+      assign hex = '#ffffff'
+    elsif c contains 'black'
+      assign hex = '#111111'
+    elsif c contains 'grey' or c contains 'gray'
+      assign hex = '#9aa0ac'
+    elsif c contains 'red'
+      assign hex = '#e4453a'
+    elsif c contains 'green'
+      assign hex = '#2faa6a'
+    endif
+    assign swatch_color = hex
+  endif
+-%}
+{%- if swatch_image -%}
+  {%- capture swatch_style -%}background-image:url({{ swatch_image | image_url: width: 80 }});background-size:cover;background-position:center;{%- endcapture -%}
+{%- else -%}
+  {%- capture swatch_style -%}background:{{ swatch_color }};{%- endcapture -%}
+{%- endif -%}
+{%- if mode == 'pdp' -%}
+  <button type="button" class="gk-pdp-swatch{% if selected %} is-active{% endif %}" style="{{ swatch_style }}" data-option="{{ position }}" data-value="{{ v_name | escape }}" aria-label="{{ v_name | escape }}" aria-pressed="{% if selected %}true{% else %}false{% endif %}"></button>
+{%- else -%}
+  <span class="gk-swatch" style="{{ swatch_style }}" title="{{ v_name | escape }}"></span>
+{%- endif -%}

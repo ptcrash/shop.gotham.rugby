@@ -5,6 +5,13 @@
   {{ settings.type_primary_font | font_modify: 'weight', 'bold' | font_modify: 'style', 'italic' | font_face: font_display: 'swap' }}
   {{ settings.type_primary_font | font_modify: 'style', 'italic' | font_face: font_display: 'swap' }}
 
+  {% # When a merchant opts into custom brand fonts, load those face variants too %}
+  {% if settings.use_custom_fonts %}
+    {{ settings.heading_font | font_face: font_display: 'swap' }}
+    {{ settings.body_font | font_face: font_display: 'swap' }}
+    {{ settings.body_font | font_modify: 'weight', 'bold' | font_face: font_display: 'swap' }}
+  {% endif %}
+
   :root {
     --font-primary--family: {{ settings.type_primary_font.family }}, {{ settings.type_primary_font.fallback_families }};
     --font-primary--style: {{ settings.type_primary_font.style }};
@@ -14,5 +21,30 @@
     --color-background: {{ settings.background_color }};
     --color-foreground: {{ settings.foreground_color }};
     --style-border-radius-inputs: {{ settings.input_corner_radius }}px;
+  }
+
+  {% comment %}
+    Gotham Knights brand overrides. Emitted AFTER gotham-ds.css so they win over
+    the bundled :root defaults. Each override is guarded: if a merchant clears a
+    swatch, the bundled gotham-ds value stays in force. We only override the base
+    tokens; the semantic aliases (--surface-page, --text-strong, --accent, etc.)
+    reference these vars and recompute automatically.
+  {% endcomment %}
+  :root {
+    {% if settings.brand_navy != blank %}
+      --navy-700: {{ settings.brand_navy }};
+    {% endif %}
+    {% if settings.brand_gold != blank %}
+      --gold-500: {{ settings.brand_gold }};
+    {% endif %}
+    {% if settings.brand_paper != blank %}
+      --paper: {{ settings.brand_paper }};
+    {% endif %}
+
+    {% # Custom brand fonts are opt-in so the bundled Hanken Grotesk stays the default look. %}
+    {% if settings.use_custom_fonts %}
+      --font-heading: {{ settings.heading_font.family }}, {{ settings.heading_font.fallback_families }};
+      --font-body: {{ settings.body_font.family }}, {{ settings.body_font.fallback_families }};
+    {% endif %}
   }
 {% endstyle %}

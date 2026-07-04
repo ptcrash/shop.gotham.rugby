@@ -20,9 +20,19 @@
       },
       "block_order": ["trust1", "trust2", "trust3", "detail1", "detail2"],
       "settings": {}
+    },
+    "recommendations": {
+      "type": "gk-product-recommendations",
+      "settings": {
+        "eyebrow": "Complete the kit",
+        "heading": "You may also like",
+        "intent": "related",
+        "products_to_show": 4
+      }
     }
   },
   "order": [
-    "main"
+    "main",
+    "recommendations"
   ]
 }

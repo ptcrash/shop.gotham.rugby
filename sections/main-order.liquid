@@ -1,0 +1,223 @@
+{% comment %}
+  Gotham Knights — order detail (classic customer accounts).
+  Line items, fulfillment/tracking, addresses, and totals for a single order.
+  https://shopify.dev/docs/storefronts/themes/architecture/templates/customers-order
+{% endcomment %}
+
+<div class="gk-acct">
+  <div class="gk-acct-hero full-width">
+    <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150" class="gk-acct-hero-crest">
+    <div class="gk-band-inner gk-acct-hero-inner">
+      <nav class="gk-acct-crumb" aria-label="Breadcrumb">
+        <a href="{{ routes.root_url }}">Home</a> /
+        <a href="{{ routes.account_url }}">My account</a> /
+        <span>{{ order.name }}</span>
+      </nav>
+      <h1 class="gk-acct-title gk-athletic">Order {{ order.name }}</h1>
+      <p class="gk-acct-sub">Placed {{ order.created_at | date: '%B %-d, %Y' }}</p>
+      {% if order.cancelled %}
+        <p class="gk-order-cancelled">This order was cancelled on {{ order.cancelled_at | date: '%B %-d, %Y' }}{% if order.cancel_reason != blank %} — {{ order.cancel_reason_label }}{% endif %}.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="gk-band gk-band-paper full-width">
+    <div class="gk-band-inner gk-acct-body">
+      <div class="gk-order-layout">
+
+        {% comment %} ---- Line items + totals ---- {% endcomment %}
+        <div class="gk-order-main">
+          <div class="gk-order-status-row">
+            <span class="gk-status gk-status-{{ order.financial_status }}">{{ order.financial_status_label }}</span>
+            <span class="gk-status gk-status-{{ order.fulfillment_status }}">{{ order.fulfillment_status_label }}</span>
+          </div>
+
+          <div class="gk-orders-scroll">
+            <table class="gk-order-items">
+              <thead>
+                <tr>
+                  <th scope="col">Item</th>
+                  <th scope="col" class="gk-num">Price</th>
+                  <th scope="col" class="gk-num">Qty</th>
+                  <th scope="col" class="gk-num">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for line_item in order.line_items %}
+                  <tr>
+                    <th scope="row" data-label="Item">
+                      <div class="gk-oi">
+                        <a class="gk-oi-media" href="{{ line_item.product.url | default: '#' }}">
+                          {%- assign oi_alt = line_item.title | escape -%}
+                          {% if line_item.image %}
+                            {{ line_item.image | image_url: width: 160 | image_tag: loading: 'lazy', widths: '80,160', alt: oi_alt, class: 'gk-oi-img' }}
+                          {% else %}
+                            <span class="gk-pcard-standin gk-standin-dark gk-oi-standin">{{ 'gk-shield-inv.svg' | inline_asset_content }}</span>
+                          {% endif %}
+                        </a>
+                        <div class="gk-oi-info">
+                          <span class="gk-oi-title">{{ line_item.product.title | default: line_item.title }}</span>
+                          {% unless line_item.variant.title == 'Default Title' or line_item.variant.title == blank %}
+                            <span class="gk-oi-variant">{{ line_item.variant.title }}</span>
+                          {% endunless %}
+                          {% if line_item.sku != blank %}<span class="gk-oi-sku">SKU: {{ line_item.sku }}</span>{% endif %}
+                          {% if line_item.fulfillment %}
+                            <span class="gk-oi-fulfilled">Fulfilled {{ line_item.fulfillment.created_at | date: '%b %-d, %Y' }}
+                              {% if line_item.fulfillment.tracking_url %}
+                                — <a class="gk-tlink" href="{{ line_item.fulfillment.tracking_url }}" target="_blank" rel="noopener">Track{% if line_item.fulfillment.tracking_number %} {{ line_item.fulfillment.tracking_number }}{% endif %}</a>
+                              {% elsif line_item.fulfillment.tracking_number %}
+                                — {{ line_item.fulfillment.tracking_company }} {{ line_item.fulfillment.tracking_number }}
+                              {% endif %}
+                            </span>
+                          {% endif %}
+                          {% for discount in line_item.line_level_discount_allocations %}
+                            <span class="gk-oi-discount">{{ discount.discount_application.title }} (−{{ discount.amount | money }})</span>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    </th>
+                    <td data-label="Price" class="gk-num">
+                      {% if line_item.original_price > line_item.final_price %}
+                        <s class="gk-oi-was">{{ line_item.original_price | money }}</s>
+                      {% endif %}
+                      {{ line_item.final_price | money }}
+                    </td>
+                    <td data-label="Qty" class="gk-num">{{ line_item.quantity }}</td>
+                    <td data-label="Total" class="gk-num">{{ line_item.final_line_price | money }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="gk-order-totals">
+            <div class="gk-order-total-row">
+              <span>Subtotal</span>
+              <span class="gk-num">{{ order.line_items_subtotal_price | money }}</span>
+            </div>
+            {% for discount in order.cart_level_discount_applications %}
+              <div class="gk-order-total-row gk-order-total-discount">
+                <span>Discount ({{ discount.title }})</span>
+                <span class="gk-num">−{{ discount.total_allocated_amount | money }}</span>
+              </div>
+            {% endfor %}
+            {% for shipping_method in order.shipping_methods %}
+              <div class="gk-order-total-row">
+                <span>Shipping ({{ shipping_method.title }})</span>
+                <span class="gk-num">{{ shipping_method.price | money }}</span>
+              </div>
+            {% endfor %}
+            {% for tax_line in order.tax_lines %}
+              <div class="gk-order-total-row">
+                <span>{{ tax_line.title }} ({{ tax_line.rate_percentage }}%)</span>
+                <span class="gk-num">{{ tax_line.price | money }}</span>
+              </div>
+            {% endfor %}
+            <div class="gk-order-total-row gk-order-total-grand">
+              <span>Total</span>
+              <span class="gk-num">{{ order.total_price | money }} {{ order.currency }}</span>
+            </div>
+            {% if order.total_refunded_amount > 0 %}
+              <div class="gk-order-total-row gk-order-total-discount">
+                <span>Refunded</span>
+                <span class="gk-num">−{{ order.total_refunded_amount | money }}</span>
+              </div>
+            {% endif %}
+          </div>
+
+          <p class="gk-order-back"><a class="gk-tlink" href="{{ routes.account_url }}">← Back to account</a></p>
+        </div>
+
+        {% comment %} ---- Addresses ---- {% endcomment %}
+        <aside class="gk-order-side">
+          {% if order.shipping_address %}
+            <div class="gk-acct-card">
+              <h2 class="gk-acct-card-title">Shipping address</h2>
+              <address class="gk-address-block">{{ order.shipping_address | format_address }}</address>
+            </div>
+          {% endif %}
+          {% if order.billing_address %}
+            <div class="gk-acct-card">
+              <h2 class="gk-acct-card-title">Billing address</h2>
+              <address class="gk-address-block">{{ order.billing_address | format_address }}</address>
+            </div>
+          {% endif %}
+          {% if section.settings.support_note != blank %}
+            <p class="gk-acct-support">{{ section.settings.support_note }}</p>
+          {% endif %}
+        </aside>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% stylesheet %}
+  .gk-acct-hero { position: relative; background: var(--navy-700); overflow: hidden; padding: 40px 50px 44px; }
+  .gk-acct-hero-crest { position: absolute; top: 50%; right: -3%; transform: translateY(-50%); height: 180%; width: auto; opacity: .06; }
+  .gk-acct-hero-inner { position: relative; }
+  .gk-acct-crumb { font: 600 12px var(--font-mono); letter-spacing: .04em; color: var(--navy-300); margin-bottom: 16px; }
+  .gk-acct-crumb a { color: var(--navy-200); text-decoration: none; }
+  .gk-acct-crumb span { color: var(--gold-400); }
+  .gk-acct-title { color: #fff; font-size: 2.6rem; line-height: .98; margin: 0; }
+  .gk-acct-sub { color: var(--navy-100); font: 500 14px var(--font-mono); margin: 14px 0 0; }
+  .gk-order-cancelled { color: var(--gold-300); font: 600 13.5px var(--font-body); margin: 10px 0 0; }
+
+  .gk-order-layout { display: grid; grid-template-columns: 1fr 300px; gap: 40px; align-items: start; }
+  .gk-order-status-row { display: flex; gap: 10px; margin-bottom: 20px; }
+
+  .gk-orders-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  .gk-order-items { width: 100%; border-collapse: collapse; min-width: 520px; }
+  .gk-order-items thead th { text-align: left; font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-500); padding: 13px 16px; background: var(--paper-2); border-bottom: 1px solid var(--border); }
+  .gk-order-items tbody th, .gk-order-items tbody td { padding: 15px 16px; font: 500 14px var(--font-body); color: var(--ink-900); border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  .gk-order-items tbody tr:last-child th, .gk-order-items tbody tr:last-child td { border-bottom: 0; }
+  .gk-num { font-family: var(--font-mono); font-weight: 600; text-align: right; white-space: nowrap; }
+  thead th.gk-num { text-align: right; }
+
+  .gk-oi { display: flex; gap: 13px; align-items: flex-start; }
+  .gk-oi-media { display: block; width: 56px; aspect-ratio: 4/5; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); flex: none; }
+  .gk-oi-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .gk-oi-standin { width: 100%; height: 100%; }
+  .gk-oi-standin svg { width: 55%; }
+  .gk-oi-info { display: flex; flex-direction: column; gap: 3px; }
+  .gk-oi-title { font: 700 14.5px var(--font-heading); color: var(--navy-700); }
+  .gk-oi-variant, .gk-oi-sku { font: 500 12.5px var(--font-mono); color: var(--ink-500); }
+  .gk-oi-fulfilled { font: 500 12.5px var(--font-body); color: #1c7a49; margin-top: 2px; }
+  .gk-oi-discount { font: 500 12.5px var(--font-body); color: var(--gold-700); }
+  .gk-oi-was { color: var(--ink-400); font-size: 12.5px; margin-right: 5px; }
+
+  .gk-order-totals { margin-top: 24px; margin-left: auto; max-width: 340px; }
+  .gk-order-total-row { display: flex; justify-content: space-between; gap: 20px; padding: 9px 0; font: 500 14px var(--font-body); color: var(--ink-700); border-bottom: 1px solid var(--border); }
+  .gk-order-total-discount { color: var(--gold-700); }
+  .gk-order-total-grand { font: 800 1rem var(--font-heading); color: var(--navy-700); border-bottom: 0; padding-top: 12px; }
+  .gk-order-back { margin: 26px 0 0; }
+
+  .gk-acct-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 18px; }
+  .gk-acct-card-title { font: 700 12px var(--font-body); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-500); margin: 0 0 12px; }
+  .gk-address-block { font: 400 14px/1.6 var(--font-body); color: var(--ink-900); font-style: normal; }
+  .gk-acct-support { font: 500 13px/1.55 var(--font-body); color: var(--ink-500); margin: 4px 0 0; }
+
+  .gk-status { display: inline-block; font: 600 11.5px var(--font-mono); letter-spacing: .02em; padding: 4px 11px; border-radius: 99px; background: var(--paper-2); color: var(--navy-700); border: 1px solid var(--border); white-space: nowrap; }
+  .gk-status-paid, .gk-status-fulfilled { background: rgba(47,170,106,.12); color: #1c7a49; border-color: rgba(47,170,106,.3); }
+  .gk-status-pending, .gk-status-unfulfilled, .gk-status-partial, .gk-status-partially_fulfilled { background: rgba(254,197,38,.16); color: #8a6d00; border-color: rgba(254,197,38,.4); }
+  .gk-status-refunded, .gk-status-voided { background: rgba(228,69,58,.1); color: var(--danger); border-color: rgba(228,69,58,.3); }
+
+  @media (max-width: 860px) {
+    .gk-acct-hero { padding: 26px 18px 30px; }
+    .gk-acct-title { font-size: 2rem; }
+    .gk-order-layout { grid-template-columns: 1fr; gap: 24px; }
+    .gk-order-totals { max-width: none; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Customer order",
+  "settings": [
+    { "type": "textarea", "id": "support_note", "label": "Support note", "default": "Thanks for repping Gotham Rugby. Questions about your order? Reach out any time." }
+  ],
+  "presets": [{ "name": "Customer order" }],
+  "disabled_on": { "groups": ["header", "footer"] }
+}
+{% endschema %}
+

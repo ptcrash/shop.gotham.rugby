@@ -20,15 +20,25 @@
 
   assign card_badge = badge
   if card_badge == blank
-    if product.tags contains 'Best-seller'
-      assign card_badge = 'Best-seller'
-      assign badge_navy = true
-    elsif product.tags contains 'New'
-      assign card_badge = 'New'
-    elsif product.tags contains 'Limited'
-      assign card_badge = 'Limited'
-    elsif product.tags contains '25th Anniversary'
-      assign card_badge = '25th Anniversary'
+    comment
+      Metafield-driven badge wins (merchant-set, no code); then tag-driven,
+      matched case-insensitively so "best-seller", "Best-Seller", etc. all work.
+    endcomment
+    assign mf_badge = product.metafields.custom.badge.value | default: product.metafields.custom.badge
+    if mf_badge != blank
+      assign card_badge = mf_badge
+    else
+      assign tags_down = product.tags | join: '||' | downcase
+      if tags_down contains 'best-seller'
+        assign card_badge = 'Best-seller'
+        assign badge_navy = true
+      elsif tags_down contains 'new'
+        assign card_badge = 'New'
+      elsif tags_down contains 'limited'
+        assign card_badge = 'Limited'
+      elsif tags_down contains '25th anniversary'
+        assign card_badge = '25th Anniversary'
+      endif
     endif
   endif
 
@@ -76,13 +86,34 @@
       <span class="gk-badge {% if badge_navy %}gk-badge-navy{% else %}gk-badge-gold{% endif %}">{{ card_badge }}</span>
     {% endif %}
 
-    {% form 'product', product, class: 'gk-qa-form' %}
-      <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
-      <button type="submit" class="gk-qa" {% unless product.available %}disabled{% endunless %}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
-        {% if product.available %}Quick add{% else %}Sold out{% endif %}
-      </button>
-    {% endform %}
+    {% comment %}
+      Quick-add: single-variant products add straight to cart; multi-variant
+      products open the PDP so the shopper picks a size/color instead of silently
+      getting the first variant. Sold-out products show a disabled control.
+    {% endcomment %}
+    {% if product.available == false %}
+      <div class="gk-qa-form">
+        <button type="button" class="gk-qa" disabled aria-disabled="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          Sold out
+        </button>
+      </div>
+    {% elsif product.has_only_default_variant or product.variants.size == 1 %}
+      {% form 'product', product, class: 'gk-qa-form' %}
+        <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+        <button type="submit" class="gk-qa">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+          Quick add
+        </button>
+      {% endform %}
+    {% else %}
+      <div class="gk-qa-form">
+        <a href="{{ product.url }}" class="gk-qa" aria-label="Choose options for {{ product.title | escape }}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+          Choose options
+        </a>
+      </div>
+    {% endif %}
   </div>
 
   <a class="gk-pcard-body" href="{{ product.url }}">
@@ -99,28 +130,7 @@
     {%- if color_option -%}
     <div class="gk-pcard-swatches">
         {%- for value in color_option.values limit: 5 -%}
-          {%- assign c = value | downcase -%}
-          {%- liquid
-            assign hex = '#5d6473'
-            if c contains 'navy' or c contains 'blue'
-              assign hex = '#0d1d41'
-            elsif c contains 'cream' or c contains 'sand' or c contains 'natural' or c contains 'ivory'
-              assign hex = '#f3ecdc'
-            elsif c contains 'gold' or c contains 'yellow'
-              assign hex = '#fec526'
-            elsif c contains 'white'
-              assign hex = '#ffffff'
-            elsif c contains 'black'
-              assign hex = '#111111'
-            elsif c contains 'grey' or c contains 'gray'
-              assign hex = '#9aa0ac'
-            elsif c contains 'red'
-              assign hex = '#e4453a'
-            elsif c contains 'green'
-              assign hex = '#2faa6a'
-            endif
-          -%}
-          <span class="gk-swatch" style="background:{{ hex }}" title="{{ value | escape }}"></span>
+          {%- render 'swatch', value: value, mode: 'card' -%}
         {%- endfor -%}
     </div>
     {%- endif -%}

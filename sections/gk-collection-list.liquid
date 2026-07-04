@@ -20,10 +20,14 @@
         {% liquid
           assign col = block.settings.collection
           assign tile_url = block.settings.collection.url | default: block.settings.url | default: routes.collections_url
-          assign tile_title = block.settings.title | default: col.title
+          assign tile_title = block.settings.title | default: col.title | default: 'Shop the collection'
           assign tile_count = block.settings.count
           if tile_count == blank and col != blank
-            assign tile_count = col.products_count | append: ' pieces'
+            if col.products_count == 1
+              assign tile_count = '1 piece'
+            else
+              assign tile_count = col.products_count | append: ' pieces'
+            endif
           endif
         %}
         <a class="gk-ctile gk-tile-{{ block.settings.style }}" href="{{ tile_url }}" {{ block.shopify_attributes }}>
@@ -42,7 +46,7 @@
           <span class="gk-ctile-content">
             <span class="gk-ctile-title">{{ tile_title }}</span>
             <span class="gk-ctile-meta">
-              <span class="gk-ctile-count">{{ tile_count }}</span>
+              {% if tile_count != blank %}<span class="gk-ctile-count">{{ tile_count }}</span>{% endif %}
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
             </span>
           </span>

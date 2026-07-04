@@ -1,0 +1,189 @@
+{% comment %}
+  Gotham Knights — customer login (classic customer accounts).
+  Sign-in form + recover-password toggle + optional guest checkout.
+  https://shopify.dev/docs/storefronts/themes/architecture/templates/customers-login
+{% endcomment %}
+
+{%- assign recover_posted = false -%}
+
+<div class="gk-acct gk-auth">
+  <div class="gk-acct-hero full-width">
+    <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150" class="gk-acct-hero-crest">
+    <div class="gk-band-inner gk-acct-hero-inner">
+      <nav class="gk-acct-crumb" aria-label="Breadcrumb">
+        <a href="{{ routes.root_url }}">Home</a> /
+        <span>{{ section.settings.heading | default: 'Sign in' }}</span>
+      </nav>
+      <h1 class="gk-acct-title gk-athletic">{{ section.settings.heading | default: 'Sign in' }}</h1>
+      {% if section.settings.subheading != blank %}
+        <p class="gk-acct-sub">{{ section.settings.subheading }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="gk-band gk-band-paper full-width">
+    <div class="gk-band-inner">
+      <div class="gk-authwrap">
+
+        {% comment %} ---- Sign in ---- {% endcomment %}
+        <div class="gk-auth-view" id="gk-login-view">
+          {% form 'customer_login', novalidate: 'novalidate' %}
+            {% if form.errors %}
+              <div class="gk-form-errors" role="alert" tabindex="-1">
+                <ul>
+                  {% for field in form.errors %}
+                    <li>{{ form.errors.translated_fields[field] | capitalize }} {{ form.errors.messages[field] }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+
+            <div class="gk-field">
+              <label for="gk-login-email">Email</label>
+              <input type="email" name="customer[email]" id="gk-login-email" class="gk-input" autocomplete="email" autocapitalize="off" spellcheck="false" required>
+            </div>
+
+            <div class="gk-field">
+              <div class="gk-field-row">
+                <label for="gk-login-password">Password</label>
+                <button type="button" class="gk-tlink gk-auth-toggle" data-target="recover">Forgot password?</button>
+              </div>
+              <input type="password" name="customer[password]" id="gk-login-password" class="gk-input" autocomplete="current-password" required>
+            </div>
+
+            <button type="submit" class="gk-btn gk-btn-primary gk-auth-submit">{{ section.settings.sign_in_label | default: 'Sign in' }}</button>
+          {% endform %}
+
+          <p class="gk-auth-alt">
+            {{ section.settings.register_prompt | default: 'New to Gotham?' }}
+            <a class="gk-tlink" href="{{ routes.account_register_url }}">{{ section.settings.register_label | default: 'Create an account' }}</a>
+          </p>
+
+          {% if shop.checkout.guest_login %}
+            <div class="gk-auth-guest">
+              <span class="gk-auth-or">or</span>
+              {% form 'guest_login' %}
+                <button type="submit" class="gk-btn gk-btn-outline-light gk-auth-submit">{{ section.settings.guest_label | default: 'Continue as guest' }}</button>
+              {% endform %}
+            </div>
+          {% endif %}
+        </div>
+
+        {% comment %} ---- Recover password ---- {% endcomment %}
+        <div class="gk-auth-view" id="gk-recover-view" hidden>
+          <h2 class="gk-auth-subtitle">Reset your password</h2>
+          <p class="gk-auth-help">We'll email you a link to set a new one.</p>
+
+          {% form 'recover_customer_password', novalidate: 'novalidate' %}
+            {% if form.posted_successfully? %}
+              {%- assign recover_posted = true -%}
+              <div class="gk-form-success" role="status">We've sent you an email with a link to update your password.</div>
+            {% endif %}
+            {% if form.errors %}
+              <div class="gk-form-errors" role="alert" tabindex="-1">
+                <ul>
+                  {% for field in form.errors %}
+                    <li>{{ form.errors.translated_fields[field] | capitalize }} {{ form.errors.messages[field] }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+
+            <div class="gk-field">
+              <label for="gk-recover-email">Email</label>
+              <input type="email" name="email" id="gk-recover-email" class="gk-input" autocomplete="email" autocapitalize="off" spellcheck="false" required>
+            </div>
+
+            <button type="submit" class="gk-btn gk-btn-primary gk-auth-submit">Send reset link</button>
+          {% endform %}
+
+          <p class="gk-auth-alt">
+            <button type="button" class="gk-tlink gk-auth-toggle" data-target="login">← Back to sign in</button>
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var loginView = document.getElementById('gk-login-view');
+    var recoverView = document.getElementById('gk-recover-view');
+    if (!loginView || !recoverView) return;
+
+    function show(which) {
+      var recover = which === 'recover';
+      loginView.hidden = recover;
+      recoverView.hidden = !recover;
+      if (recover) {
+        var input = document.getElementById('gk-recover-email');
+        if (input) input.focus();
+      }
+    }
+
+    document.querySelectorAll('.gk-auth-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () { show(btn.dataset.target); });
+    });
+
+    // Reveal recover view on #recover hash or after a successful recovery post.
+    if (window.location.hash === '#recover' || {{ recover_posted | json }}) {
+      show('recover');
+    }
+  })();
+</script>
+
+{% stylesheet %}
+  .gk-acct-hero { position: relative; background: var(--navy-700); overflow: hidden; padding: 40px 50px 44px; }
+  .gk-acct-hero-crest { position: absolute; top: 50%; right: -3%; transform: translateY(-50%); height: 180%; width: auto; opacity: .06; }
+  .gk-acct-hero-inner { position: relative; }
+  .gk-acct-crumb { font: 600 12px var(--font-mono); letter-spacing: .04em; color: var(--navy-300); margin-bottom: 16px; }
+  .gk-acct-crumb a { color: var(--navy-200); text-decoration: none; }
+  .gk-acct-crumb span { color: var(--gold-400); }
+  .gk-acct-title { color: #fff; font-size: 3rem; line-height: .95; margin: 0; }
+  .gk-acct-sub { color: var(--navy-100); font-size: 1.05rem; line-height: 1.55; max-width: 60ch; margin: 14px 0 0; }
+
+  .gk-authwrap { max-width: 460px; margin: 0 auto; }
+  .gk-auth-subtitle { font: 800 1.5rem var(--font-heading); color: var(--navy-700); margin: 0 0 6px; }
+  .gk-auth-help { font: 400 14.5px/1.55 var(--font-body); color: var(--ink-500); margin: 0 0 22px; }
+
+  .gk-field { margin-bottom: 18px; }
+  .gk-field label { display: block; font: 700 12px var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--navy-700); margin-bottom: 8px; }
+  .gk-field-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .gk-field-row .gk-auth-toggle { font-size: 12px; }
+  .gk-input { width: 100%; padding: 13px 14px; border: 1.5px solid var(--border-strong); border-radius: 8px; font: 400 15px var(--font-body); color: var(--ink-900); background: #fff; }
+  .gk-input:focus { outline: none; border-color: var(--navy-700); box-shadow: 0 0 0 3px rgba(13,29,65,.12); }
+
+  .gk-auth-toggle { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
+  .gk-auth-submit { width: 100%; justify-content: center; margin-top: 4px; }
+  .gk-auth-alt { font: 500 14px var(--font-body); color: var(--ink-700); margin: 20px 0 0; text-align: center; }
+  .gk-auth-guest { margin-top: 22px; text-align: center; }
+  .gk-auth-or { display: block; font: 600 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-400); margin-bottom: 14px; }
+
+  .gk-form-errors { background: rgba(228,69,58,.08); border: 1px solid var(--danger); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+  .gk-form-errors ul { margin: 0; padding-left: 18px; }
+  .gk-form-errors li { font: 500 13.5px/1.5 var(--font-body); color: var(--danger); }
+  .gk-form-success { background: rgba(47,170,106,.1); border: 1px solid var(--success, #2faa6a); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font: 500 13.5px/1.5 var(--font-body); color: #1c7a49; }
+
+  @media (max-width: 860px) {
+    .gk-acct-hero { padding: 26px 18px 30px; }
+    .gk-acct-title { font-size: 2.1rem; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Customer login",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Sign in" },
+    { "type": "textarea", "id": "subheading", "label": "Subheading", "default": "Welcome back to the Gotham Knights shop." },
+    { "type": "text", "id": "sign_in_label", "label": "Sign-in button", "default": "Sign in" },
+    { "type": "text", "id": "register_prompt", "label": "Register prompt", "default": "New to Gotham?" },
+    { "type": "text", "id": "register_label", "label": "Register link", "default": "Create an account" },
+    { "type": "text", "id": "guest_label", "label": "Guest checkout button", "default": "Continue as guest" }
+  ],
+  "presets": [{ "name": "Customer login" }],
+  "disabled_on": { "groups": ["header", "footer"] }
+}
+{% endschema %}

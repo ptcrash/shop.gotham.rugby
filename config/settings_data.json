@@ -9,10 +9,14 @@
  */
 {
   "current": {
+    "brand_navy": "#0D1D41",
+    "brand_gold": "#FEC526",
+    "brand_paper": "#FBF7EE",
     "background_color": "#FBF7EE",
     "foreground_color": "#0D1D41",
     "input_corner_radius": 6,
     "max_page_width": "110rem",
-    "min_page_margin": 20
+    "min_page_margin": 20,
+    "use_custom_fonts": false
   }
 }

@@ -1,23 +1,65 @@
 {% comment %}
-  This section is used in the 404 template to render page shown when customers
-  enter an invalid store URL.
-
+  Gotham Knights 404 — navy band with the crest, an on-brand message, a search
+  field, and a CTA back to the shop.
   https://shopify.dev/docs/storefronts/themes/architecture/templates/404
 {% endcomment %}
 
-<h1>{{ '404.title' | t }}</h1>
+<div class="gk-404 full-width">
+  <div class="gk-404-inner">
+    <span class="gk-404-crest">{{ 'gk-shield-inv.svg' | inline_asset_content }}</span>
+    <div class="gk-404-code">404</div>
+    <h1 class="gk-404-title gk-athletic">{{ section.settings.heading | default: 'Off the pitch' }}</h1>
+    <p class="gk-404-copy">{{ section.settings.message | default: "This page took a knock and left the field. Let's get you back in the game." }}</p>
 
-<p>
-  {{ '404.not_found' | t }}
-</p>
+    <form action="{{ routes.search_url }}" method="get" role="search" class="gk-404-search">
+      <label for="gk-404-search-input" class="gk-visually-hidden">{{ 'search.title' | t }}</label>
+      <svg class="gk-404-search-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <input type="search" id="gk-404-search-input" name="q" placeholder="{{ section.settings.placeholder | default: 'Search the store…' }}" autocomplete="off">
+      <button type="submit" class="gk-btn gk-btn-primary gk-404-search-btn">{{ 'search.submit' | t }}</button>
+    </form>
 
-<a href="{{ routes.all_products_collection_url }}">
-  {{ '404.back_to_shopping' | t }}
-</a>
+    <div class="gk-404-actions">
+      <a class="gk-btn gk-btn-outline-light" href="{{ section.settings.button_link | default: routes.all_products_collection_url }}">{{ section.settings.button_label | default: 'Back to the shop' }}</a>
+    </div>
+
+    <hr class="gk-pride-rule gk-404-rule">
+  </div>
+</div>
+
+{% stylesheet %}
+  .gk-404 { position: relative; background: var(--navy-700); overflow: hidden; padding: 80px 50px 90px; text-align: center; }
+  .gk-404-inner { position: relative; max-width: 620px; margin: 0 auto; }
+  .gk-404-crest { display: inline-flex; width: 108px; margin-bottom: 22px; }
+  .gk-404-crest svg { width: 100%; height: auto; opacity: .95; }
+  .gk-404-code { font: 700 15px var(--font-mono); letter-spacing: .3em; color: var(--gold-400); margin-bottom: 12px; }
+  .gk-404-title { color: #fff; font-size: 3rem; line-height: .95; margin: 0 0 14px; }
+  .gk-404-copy { color: var(--navy-100); font: 400 1.1rem/1.55 var(--font-body); max-width: 42ch; margin: 0 auto 28px; }
+  .gk-404-search { position: relative; display: flex; gap: 10px; max-width: 480px; margin: 0 auto 22px; flex-wrap: wrap; }
+  .gk-404-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--navy-300); pointer-events: none; }
+  .gk-404-search input[type="search"] {
+    flex: 1; min-width: 200px; font: 500 16px var(--font-body); padding: 15px 16px 15px 46px;
+    border: 2px solid rgba(255,255,255,.28); border-radius: 6px; background: var(--navy-800); color: #fff; outline: none;
+  }
+  .gk-404-search input::placeholder { color: var(--navy-300); }
+  .gk-404-search-btn { font-size: 14px; }
+  .gk-404-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .gk-404-rule { width: 120px; margin: 40px auto 0; }
+
+  @media (max-width: 860px) {
+    .gk-404 { padding: 50px 18px 60px; }
+    .gk-404-title { font-size: 2.1rem; }
+  }
+{% endstylesheet %}
 
 {% schema %}
 {
-  "name": "t:general.404",
-  "settings": []
+  "name": "404 page",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Off the pitch" },
+    { "type": "textarea", "id": "message", "label": "Message", "default": "This page took a knock and left the field. Let's get you back in the game." },
+    { "type": "text", "id": "placeholder", "label": "Search placeholder", "default": "Search the store…" },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Back to the shop" },
+    { "type": "url", "id": "button_link", "label": "Button link (defaults to all products)" }
+  ]
 }
 {% endschema %}

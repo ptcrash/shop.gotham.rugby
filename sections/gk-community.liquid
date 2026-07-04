@@ -1,7 +1,8 @@
 {% comment %}
   Gotham Knights homepage community grid — "On the pitch & in the feed".
-  A 6-up thumbnail wall on deep navy with a follow CTA. Image blocks optional;
-  empty slots fall back to branded pattern tiles.
+  A thumbnail wall on deep navy with a follow CTA. Each tile is an independent
+  block a merchant can add / remove / reorder: set an image, or pick a branded
+  pattern stand-in, and optionally link it out.
 {% endcomment %}
 
 <section class="gk-community full-width">
@@ -20,27 +21,36 @@
     </div>
 
     <div class="gk-community-grid">
-      {% assign styles = 'photo,dark,stripes,gold,light,ring' | split: ',' %}
-      {% for i in (0..5) %}
-        {% assign block = section.blocks[i] %}
-        {% assign style = styles[i] %}
-        {% if block and block.settings.image %}
-          <div class="gk-thumb" {{ block.shopify_attributes }}>
-            {{ block.settings.image | image_url: width: 300 | image_tag: loading: 'lazy', class: 'gk-thumb-photo', alt: '' }}
-          </div>
-        {% elsif style == 'photo' %}
-          <div class="gk-thumb"><img class="gk-thumb-photo" src="{{ 'intro-to-rugby.jpg' | asset_url }}" alt="Gotham Knights matchday" width="300" height="300"></div>
-        {% elsif style == 'dark' %}
-          <div class="gk-thumb gk-thumb-dark"><img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150"></div>
-        {% elsif style == 'stripes' %}
-          <div class="gk-thumb gk-stripes" style="--gk-stripe-size:16px"></div>
-        {% elsif style == 'gold' %}
-          <div class="gk-thumb gk-thumb-gold"><span class="gk-athletic">GK</span></div>
-        {% elsif style == 'light' %}
-          <div class="gk-thumb gk-thumb-light"><img src="{{ 'gk-shield-2c.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150"></div>
-        {% else %}
-          <div class="gk-thumb gk-thumb-ring"><img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150"></div>
-        {% endif %}
+      {% for block in section.blocks %}
+        {% liquid
+          assign tile_link = block.settings.link
+          assign tile_tag = 'div'
+          if tile_link != blank
+            assign tile_tag = 'a'
+          endif
+        %}
+        <{{ tile_tag }}
+          class="gk-thumb gk-thumb-{{ block.settings.style }}"
+          {% if tile_link != blank %}href="{{ tile_link }}" aria-label="{{ block.settings.link_label | default: 'View on social' | escape }}"{% endif %}
+          {{ block.shopify_attributes }}
+        >
+          {% if block.settings.image %}
+            {{ block.settings.image | image_url: width: 300 | image_tag: loading: 'lazy', class: 'gk-thumb-photo', alt: block.settings.image.alt | default: '' }}
+          {% elsif block.settings.style == 'photo' %}
+            <img class="gk-thumb-photo" src="{{ 'intro-to-rugby.jpg' | asset_url }}" alt="Gotham Knights matchday" width="300" height="300">
+          {% elsif block.settings.style == 'dark' %}
+            <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150">
+          {% elsif block.settings.style == 'gold' %}
+            <span class="gk-athletic">{{ block.settings.label | default: 'GK' }}</span>
+          {% elsif block.settings.style == 'light' %}
+            <img src="{{ 'gk-shield-2c.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150">
+          {% elsif block.settings.style == 'ring' %}
+            <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150">
+          {% endif %}
+          {% comment %} stripes style renders as an empty patterned tile {% endcomment %}
+        </{{ tile_tag }}>
+      {% else %}
+        <p class="gk-community-empty">Add tiles to build your community wall.</p>
       {% endfor %}
     </div>
   </div>
@@ -51,16 +61,20 @@
   .gk-community-title { margin: 0; font: 800 30px var(--font-heading); color: #fff; letter-spacing: -.01em; }
   .gk-community-follow { font-size: 13px; padding: 12px 20px; border-width: 2px; border-color: rgba(255,255,255,.4); gap: 9px; }
   .gk-community-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
-  .gk-thumb { aspect-ratio: 1/1; border-radius: 10px; overflow: hidden; display: grid; place-items: center; }
+  .gk-thumb { aspect-ratio: 1/1; border-radius: 10px; overflow: hidden; display: grid; place-items: center; text-decoration: none; }
+  a.gk-thumb { transition: transform var(--dur-fast) var(--ease-standard); }
+  a.gk-thumb:hover { transform: translateY(-2px); }
   .gk-thumb-photo { width: 100%; height: 100%; object-fit: cover; }
   .gk-thumb-dark { background-color: var(--navy-700); background-image: radial-gradient(var(--gold-500) 1.5px, transparent 1.7px); background-size: 11px 11px; }
   .gk-thumb-dark img { width: 52%; opacity: .92; }
   .gk-thumb-light { background-color: var(--paper); background-image: radial-gradient(var(--navy-700) 1.5px, transparent 1.7px); background-size: 11px 11px; }
   .gk-thumb-light img { width: 54%; }
+  .gk-thumb-stripes { background: repeating-linear-gradient(-45deg, var(--navy-700) 0 8px, var(--navy-600) 8px 16px); }
   .gk-thumb-gold { background: var(--gold-500); }
   .gk-thumb-gold span { color: var(--navy-700); font-size: 2rem; }
   .gk-thumb-ring { border: 3px solid var(--gold-500); background: var(--navy-700); }
   .gk-thumb-ring img { width: 50%; opacity: .92; }
+  .gk-community-empty { color: var(--navy-200); font: 500 14px var(--font-body); grid-column: 1 / -1; }
   @media (max-width: 860px) {
     .gk-community { padding: 40px 18px; }
     .gk-community-grid { grid-template-columns: repeat(3, 1fr); }
@@ -78,10 +92,40 @@
     { "type": "url", "id": "follow_url", "label": "Follow URL" }
   ],
   "blocks": [
-    { "type": "photo", "name": "Photo", "settings": [ { "type": "image_picker", "id": "image", "label": "Image" } ] }
+    {
+      "type": "tile",
+      "name": "Tile",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image", "info": "Overrides the pattern below when set." },
+        {
+          "type": "select", "id": "style", "label": "Pattern (when no image)", "default": "dark",
+          "options": [
+            { "value": "photo", "label": "Sample photo" },
+            { "value": "dark", "label": "Dark dots + crest" },
+            { "value": "light", "label": "Light dots + crest" },
+            { "value": "stripes", "label": "Stripes" },
+            { "value": "gold", "label": "Gold (text)" },
+            { "value": "ring", "label": "Gold ring + crest" }
+          ]
+        },
+        { "type": "text", "id": "label", "label": "Gold tile text", "info": "Used only by the Gold pattern.", "default": "GK" },
+        { "type": "url", "id": "link", "label": "Link (optional)" },
+        { "type": "text", "id": "link_label", "label": "Link accessible label", "default": "View on social" }
+      ]
+    }
   ],
-  "max_blocks": 6,
-  "presets": [{ "name": "Community grid" }],
+  "max_blocks": 12,
+  "presets": [{
+    "name": "Community grid",
+    "blocks": [
+      { "type": "tile", "settings": { "style": "photo" } },
+      { "type": "tile", "settings": { "style": "dark" } },
+      { "type": "tile", "settings": { "style": "stripes" } },
+      { "type": "tile", "settings": { "style": "gold", "label": "GK" } },
+      { "type": "tile", "settings": { "style": "light" } },
+      { "type": "tile", "settings": { "style": "ring" } }
+    ]
+  }],
   "disabled_on": { "groups": ["header", "footer"] }
 }
 {% endschema %}

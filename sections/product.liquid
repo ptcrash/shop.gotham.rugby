@@ -7,6 +7,21 @@
 {% liquid
   assign current_variant = product.selected_or_first_available_variant
   assign has_images = product.images.size
+
+  comment
+    Badge: merchant metafield wins, then a case-insensitive tag match.
+  endcomment
+  assign pdp_badge = product.metafields.custom.badge.value | default: product.metafields.custom.badge
+  if pdp_badge == blank
+    assign tags_down = product.tags | join: '||' | downcase
+    if tags_down contains 'best-seller'
+      assign pdp_badge = 'Best-seller'
+    elsif tags_down contains 'limited'
+      assign pdp_badge = 'Limited'
+    elsif tags_down contains 'new'
+      assign pdp_badge = 'New'
+    endif
+  endif
 %}
 
 <div class="gk-pdp">
@@ -29,13 +44,13 @@
             {% else %}
               <span class="gk-pcard-standin gk-standin-dark gk-pdp-standin">{{ 'gk-shield-inv.svg' | inline_asset_content }}</span>
             {% endif %}
-            {% if product.tags contains 'Best-seller' %}<span class="gk-badge gk-badge-navy gk-pdp-badge">Best-seller</span>{% endif %}
+            {% if pdp_badge != blank %}<span class="gk-badge gk-badge-navy gk-pdp-badge">{{ pdp_badge }}</span>{% endif %}
           </div>
 
           {% if has_images > 1 %}
             <div class="gk-pdp-thumbs">
               {% for image in product.images limit: 5 %}
-                <button type="button" class="gk-pdp-thumb{% if forloop.first %} is-active{% endif %}" data-full="{{ image | image_url: width: 900 }}" aria-label="View image {{ forloop.index }}">
+                <button type="button" class="gk-pdp-thumb{% if forloop.first %} is-active{% endif %}" data-full="{{ image | image_url: width: 900 }}" data-srcset="{{ image | image_url: width: 600 }} 600w, {{ image | image_url: width: 900 }} 900w, {{ image | image_url: width: 1200 }} 1200w" aria-label="View image {{ forloop.index }}"{% if forloop.first %} aria-current="true"{% endif %}>
                   {{ image | image_url: width: 160 | image_tag: loading: 'lazy', alt: '' }}
                 </button>
               {% endfor %}
@@ -76,38 +91,22 @@
                     <div class="gk-pdp-optlabel">{{ option.name }}: <span class="gk-pdp-optval">{{ option.selected_value }}</span></div>
                     <div class="gk-pdp-swatches">
                       {% for value in option.values %}
-                        {% assign c = value | downcase %}
-                        {% liquid
-                          assign hex = '#5d6473'
-                          if c contains 'navy' or c contains 'blue'
-                            assign hex = '#0d1d41'
-                          elsif c contains 'cream' or c contains 'sand' or c contains 'natural' or c contains 'ivory'
-                            assign hex = '#f3ecdc'
-                          elsif c contains 'gold' or c contains 'yellow'
-                            assign hex = '#fec526'
-                          elsif c contains 'white'
-                            assign hex = '#ffffff'
-                          elsif c contains 'black'
-                            assign hex = '#111111'
-                          elsif c contains 'grey' or c contains 'gray'
-                            assign hex = '#9aa0ac'
-                          elsif c contains 'red'
-                            assign hex = '#e4453a'
-                          elsif c contains 'green'
-                            assign hex = '#2faa6a'
-                          endif
-                        %}
-                        <button type="button" class="gk-pdp-swatch{% if option.selected_value == value %} is-active{% endif %}" style="background:{{ hex }}" data-option="{{ forloop.index }}" data-value="{{ value | escape }}" aria-label="{{ value | escape }}"></button>
+                        {% assign v_selected = false %}
+                        {% if value.selected %}{% assign v_selected = true %}{% elsif option.selected_value == value %}{% assign v_selected = true %}{% endif %}
+                        {% render 'swatch', value: value, mode: 'pdp', selected: v_selected, position: forloop.index %}
                       {% endfor %}
                     </div>
                   {% else %}
                     <div class="gk-pdp-optrow">
                       <span class="gk-pdp-optname">{{ option.name }}</span>
-                      {% if opt_down == 'size' %}<a class="gk-tlink gk-pdp-sizeguide" href="#gk-size-guide">Size guide</a>{% endif %}
+                      {% if opt_down == 'size' and section.settings.size_guide != blank %}<a class="gk-tlink gk-pdp-sizeguide" href="#gk-size-guide" aria-haspopup="dialog">Size guide</a>{% endif %}
                     </div>
                     <div class="gk-pdp-sizes">
                       {% for value in option.values %}
-                        <button type="button" class="gk-pdp-size{% if option.selected_value == value %} is-active{% endif %}" data-option="{{ forloop.index }}" data-value="{{ value | escape }}">{{ value }}</button>
+                        {% assign v_name = value.name | default: value %}
+                        {% assign v_selected = false %}
+                        {% if value.selected %}{% assign v_selected = true %}{% elsif option.selected_value == value %}{% assign v_selected = true %}{% endif %}
+                        <button type="button" class="gk-pdp-size{% if v_selected %} is-active{% endif %}" data-option="{{ forloop.index }}" data-value="{{ v_name | escape }}" aria-pressed="{% if v_selected %}true{% else %}false{% endif %}">{{ v_name }}</button>
                       {% endfor %}
                     </div>
                   {% endif %}
@@ -121,9 +120,9 @@
                 <input type="number" name="quantity" id="gk-qty" value="1" min="1" aria-label="Quantity">
                 <button type="button" class="gk-qty-btn" data-qty="1" aria-label="Increase">+</button>
               </div>
-              <button type="submit" class="gk-btn gk-btn-primary gk-pdp-add" {% unless product.available %}disabled{% endunless %}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
-                {% if product.available %}Add to cart · <span id="gk-add-price">{{ current_variant.price | money_without_trailing_zeros }}</span>{% else %}Sold out{% endif %}
+              <button type="submit" class="gk-btn gk-btn-primary gk-pdp-add{% unless product.available %} is-soldout{% endunless %}" {% unless product.available %}disabled{% endunless %}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                <span class="gk-pdp-add-label">{% if product.available %}Add to cart · {% else %}Sold out{% endif %}</span><span id="gk-add-price">{% if product.available %}{{ current_variant.price | money_without_trailing_zeros }}{% endif %}</span>
               </button>
             </div>
           {% endform %}
@@ -161,10 +160,45 @@
               {% endif %}
             {% endfor %}
           </div>
+
+          {% comment %}
+            App blocks (reviews, upsells, subscriptions, etc.). Merchants add these
+            from the theme editor — "Add block" → any installed app — and they
+            render here in the buy panel with no theme edits.
+          {% endcomment %}
+          {% assign has_app_block = false %}
+          {% for block in section.blocks %}
+            {% if block.type == '@app' %}{% assign has_app_block = true %}{% break %}{% endif %}
+          {% endfor %}
+          {% if has_app_block %}
+            <div class="gk-pdp-appblocks">
+              {% for block in section.blocks %}
+                {% if block.type == '@app' %}
+                  <div class="gk-pdp-appblock" {{ block.shopify_attributes }}>{% render block %}</div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          {% endif %}
         </div>
       </div>
     </div>
   </div>
+
+  {% comment %} ---- Size guide modal ---- {% endcomment %}
+  {% if section.settings.size_guide != blank %}
+    <div class="gk-modal full-width" id="gk-size-guide" hidden>
+      <div class="gk-modal-backdrop" data-gk-modal-close></div>
+      <div class="gk-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="gk-size-guide-title" tabindex="-1">
+        <div class="gk-modal-head">
+          <h2 class="gk-modal-title" id="gk-size-guide-title">{{ section.settings.size_guide_heading | default: 'Size guide' }}</h2>
+          <button type="button" class="gk-modal-close" data-gk-modal-close aria-label="Close size guide">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          </button>
+        </div>
+        <div class="gk-modal-body">{{ section.settings.size_guide }}</div>
+      </div>
+    </div>
+  {% endif %}
 
   {% comment %} ---- Complete the kit ---- {% endcomment %}
   {% assign has_related = false %}
@@ -219,11 +253,14 @@
   (function () {
     var variants = {{ product.variants | json }};
     var options = {{ product.options | json }};
+    var moneyFormat = {{ shop.money_format | strip_html | json }};
     var form = document.getElementById('gk-add-form');
     if (!form) return;
     var idInput = document.getElementById('gk-variant-id');
     var priceEl = document.getElementById('gk-price');
     var addPriceEl = document.getElementById('gk-add-price');
+    var addBtn = form.querySelector('.gk-pdp-add');
+    var addLabel = document.getElementById('gk-add-price');
     var stickyMeta = document.getElementById('gk-stickybar-meta');
     var selected = {};
 
@@ -232,35 +269,112 @@
       selected[b.dataset.option] = b.dataset.value;
     });
 
-    function money(cents) {
-      return '$' + (cents / 100).toFixed(2);
+    // Currency-safe money formatter (mirrors Shopify's money_format placeholders).
+    function formatMoney(cents) {
+      if (typeof cents === 'string') { cents = cents.replace('.', ''); }
+      var placeholder = /\{\{\s*(\w+)\s*\}\}/;
+      function fmt(number, precision, thousands, decimal) {
+        precision = (precision == null) ? 2 : precision;
+        thousands = (thousands == null) ? ',' : thousands;
+        decimal = (decimal == null) ? '.' : decimal;
+        if (isNaN(number) || number == null) { return '0'; }
+        number = (number / 100).toFixed(precision);
+        var parts = number.split('.');
+        var dollars = parts[0].replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1' + thousands);
+        var frac = parts[1] ? decimal + parts[1] : '';
+        return dollars + frac;
+      }
+      var match = moneyFormat.match(placeholder);
+      if (!match) { return moneyFormat; }
+      var value = '';
+      switch (match[1]) {
+        case 'amount': value = fmt(cents, 2); break;
+        case 'amount_no_decimals': value = fmt(cents, 0); break;
+        case 'amount_with_comma_separator': value = fmt(cents, 2, '.', ','); break;
+        case 'amount_no_decimals_with_comma_separator': value = fmt(cents, 0, '.', ','); break;
+        case 'amount_with_apostrophe_separator': value = fmt(cents, 2, "'", '.'); break;
+        case 'amount_with_space_separator': value = fmt(cents, 2, ' ', ','); break;
+        case 'amount_no_decimals_with_space_separator': value = fmt(cents, 0, ' ', ''); break;
+        default: value = fmt(cents, 2);
+      }
+      return moneyFormat.replace(placeholder, value);
     }
-    function findVariant() {
+
+    // Does a variant exist for `sel` (a map of option-position -> value)?
+    function variantFor(sel) {
       return variants.find(function (v) {
         return options.every(function (name, i) {
           var key = String(i + 1);
-          return selected[key] === undefined || v.options[i] === selected[key];
+          return sel[key] === undefined || v.options[i] === sel[key];
         });
       });
     }
+
+    // Mark option values that can't be reached (given the OTHER current choices).
+    function refreshAvailability() {
+      form.querySelectorAll('.gk-pdp-option').forEach(function (optWrap) {
+        optWrap.querySelectorAll('.gk-pdp-swatch, .gk-pdp-size').forEach(function (btn) {
+          var trial = {};
+          Object.keys(selected).forEach(function (k) { trial[k] = selected[k]; });
+          trial[btn.dataset.option] = btn.dataset.value;
+          var match = variantFor(trial);
+          var reachable = !!(match && match.available);
+          btn.classList.toggle('is-unavailable', !reachable);
+          if (!reachable) { btn.setAttribute('data-unavailable', 'true'); }
+          else { btn.removeAttribute('data-unavailable'); }
+        });
+      });
+    }
+
+    function setAddState(available) {
+      if (!addBtn) { return; }
+      addBtn.disabled = !available;
+      if (available) {
+        addBtn.classList.remove('is-soldout');
+      } else {
+        addBtn.classList.add('is-soldout');
+        var label = addBtn.querySelector('.gk-pdp-add-label');
+        if (label) { label.textContent = 'Sold out'; }
+        if (addLabel) { addLabel.textContent = ''; }
+      }
+    }
+
     function update() {
-      var v = findVariant();
-      if (!v) return;
+      refreshAvailability();
+      var v = variantFor(selected);
+      if (!v) {
+        setAddState(false);
+        var lbl = addBtn && addBtn.querySelector('.gk-pdp-add-label');
+        if (lbl) { lbl.textContent = 'Unavailable'; }
+        return;
+      }
       idInput.value = v.id;
-      if (priceEl) priceEl.textContent = money(v.price);
-      if (addPriceEl) addPriceEl.textContent = money(v.price);
-      if (stickyMeta) stickyMeta.textContent = v.title + ' · ' + money(v.price);
+      var priceStr = formatMoney(v.price);
+      if (priceEl) { priceEl.textContent = priceStr; }
+      if (stickyMeta) { stickyMeta.textContent = v.title + ' · ' + priceStr; }
+      if (v.available) {
+        setAddState(true);
+        var addWords = addBtn && addBtn.querySelector('.gk-pdp-add-label');
+        if (addWords) { addWords.textContent = 'Add to cart · '; }
+        if (addPriceEl) { addPriceEl.textContent = priceStr; }
+      } else {
+        setAddState(false);
+      }
     }
 
     form.querySelectorAll('.gk-pdp-swatch, .gk-pdp-size').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var group = btn.parentElement;
-        group.querySelectorAll('.is-active').forEach(function (el) { el.classList.remove('is-active'); });
+        group.querySelectorAll('.is-active').forEach(function (el) {
+          el.classList.remove('is-active');
+          el.setAttribute('aria-pressed', 'false');
+        });
         btn.classList.add('is-active');
+        btn.setAttribute('aria-pressed', 'true');
         selected[btn.dataset.option] = btn.dataset.value;
         var optWrap = btn.closest('.gk-pdp-option');
         var valLabel = optWrap && optWrap.querySelector('.gk-pdp-optval');
-        if (valLabel) valLabel.textContent = btn.dataset.value;
+        if (valLabel) { valLabel.textContent = btn.dataset.value; }
         update();
       });
     });
@@ -273,23 +387,76 @@
       });
     });
 
-    // gallery thumb swap
+    // gallery thumb swap — update both src and srcset so the browser keeps the
+    // responsive candidates.
     document.querySelectorAll('.gk-pdp-thumb').forEach(function (t) {
       t.addEventListener('click', function () {
         var main = document.querySelector('.gk-pdp-main-img');
-        if (main && t.dataset.full) main.src = t.dataset.full;
-        document.querySelectorAll('.gk-pdp-thumb.is-active').forEach(function (a) { a.classList.remove('is-active'); });
+        if (main) {
+          if (t.dataset.srcset) { main.srcset = t.dataset.srcset; }
+          if (t.dataset.full) { main.src = t.dataset.full; }
+        }
+        document.querySelectorAll('.gk-pdp-thumb.is-active').forEach(function (a) {
+          a.classList.remove('is-active');
+          a.removeAttribute('aria-current');
+        });
         t.classList.add('is-active');
+        t.setAttribute('aria-current', 'true');
       });
     });
 
     // sticky buy bar on scroll past the main add button
     var bar = document.getElementById('gk-stickybar');
-    var addBtn = form.querySelector('.gk-pdp-add');
     if (bar && addBtn && 'IntersectionObserver' in window) {
       new IntersectionObserver(function (entries) {
         bar.hidden = entries[0].isIntersecting;
       }).observe(addBtn);
+    }
+
+    // reflect the correct availability/price for the initial selection
+    update();
+
+    // ---- Size guide modal ----
+    var modal = document.getElementById('gk-size-guide');
+    if (modal) {
+      var dialog = modal.querySelector('.gk-modal-dialog');
+      var lastFocus = null;
+
+      function focusables() {
+        return dialog.querySelectorAll('a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])');
+      }
+      function openModal(e) {
+        if (e) { e.preventDefault(); }
+        lastFocus = document.activeElement;
+        modal.hidden = false;
+        document.body.style.overflow = 'hidden';
+        (dialog || modal).focus();
+      }
+      function closeModal() {
+        modal.hidden = true;
+        document.body.style.overflow = '';
+        if (lastFocus && lastFocus.focus) { lastFocus.focus(); }
+      }
+      document.querySelectorAll('.gk-pdp-sizeguide').forEach(function (link) {
+        link.addEventListener('click', openModal);
+      });
+      modal.querySelectorAll('[data-gk-modal-close]').forEach(function (el) {
+        el.addEventListener('click', closeModal);
+      });
+      modal.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { closeModal(); return; }
+        if (e.key === 'Tab') {
+          var items = focusables();
+          if (!items.length) { return; }
+          var first = items[0];
+          var last = items[items.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault(); last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault(); first.focus();
+          }
+        }
+      });
     }
   })();
 </script>
@@ -334,6 +501,32 @@
   .gk-pdp-size { min-width: 48px; height: 46px; padding: 0 12px; border: 1.5px solid var(--border-strong); border-radius: 6px; background: #fff; font: 600 14px var(--font-mono); color: var(--navy-700); cursor: pointer; }
   .gk-pdp-size.is-active { border: 2px solid var(--navy-700); background: var(--navy-700); color: #fff; }
   .gk-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  /* Unavailable / unreachable option values */
+  .gk-pdp-size.is-unavailable { color: var(--ink-400); border-color: var(--border); background: linear-gradient(to top left, transparent 46%, var(--border-strong) 46%, var(--border-strong) 54%, transparent 54%); }
+  .gk-pdp-size.is-unavailable.is-active { color: #fff; }
+  .gk-pdp-swatch.is-unavailable { opacity: .4; }
+  .gk-pdp-swatch.is-unavailable::after { content: ''; position: absolute; inset: 0; border-radius: 99px; }
+  .gk-pdp-swatch { position: relative; }
+  .gk-pdp-add.is-soldout { opacity: .75; }
+
+  /* App blocks (reviews, upsells, etc.) dropped in from the editor */
+  .gk-pdp-appblocks { margin-top: 22px; display: flex; flex-direction: column; gap: 18px; }
+  .gk-pdp-appblock:empty { display: none; }
+
+  /* Size-guide modal */
+  .gk-modal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 20px; }
+  .gk-modal[hidden] { display: none; }
+  .gk-modal-backdrop { position: absolute; inset: 0; background: rgba(7,17,42,.55); }
+  .gk-modal-dialog { position: relative; background: var(--surface-card, #fff); color: var(--text-body, var(--ink-700)); border-radius: var(--radius-lg, 14px); max-width: 640px; width: 100%; max-height: 86vh; overflow: auto; box-shadow: 0 24px 60px rgba(7,17,42,.34); }
+  .gk-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: inherit; }
+  .gk-modal-title { margin: 0; font: 800 1.3rem/1.1 var(--font-heading); color: var(--navy-700); }
+  .gk-modal-close { border: 0; background: none; color: var(--navy-700); cursor: pointer; display: inline-flex; padding: 4px; border-radius: 6px; }
+  .gk-modal-close:hover { background: var(--paper-2); }
+  .gk-modal-body { padding: 22px 24px 26px; font: 400 14.5px/1.6 var(--font-body); color: var(--ink-700); }
+  .gk-modal-body table { width: 100%; border-collapse: collapse; margin: 8px 0; font: 500 13.5px var(--font-mono); }
+  .gk-modal-body th, .gk-modal-body td { border: 1px solid var(--border); padding: 9px 12px; text-align: left; }
+  .gk-modal-body th { background: var(--paper-2); color: var(--navy-700); font-weight: 700; }
 
   .gk-pdp-buyrow { display: flex; gap: 12px; align-items: stretch; margin-bottom: 18px; }
   .gk-qty { display: flex; align-items: center; border: 1.5px solid var(--border-strong); border-radius: 6px; overflow: hidden; }
@@ -380,9 +573,13 @@
 {
   "name": "t:general.product",
   "settings": [
-    { "type": "textarea", "id": "support_note", "label": "Support note", "default": "Your purchase supports Gotham Rugby — kit, pitch time, and travel for NYC's inclusive rugby club. (Not a tax-deductible donation.)" }
+    { "type": "textarea", "id": "support_note", "label": "Support note", "default": "Your purchase supports Gotham Rugby — kit, pitch time, and travel for NYC's inclusive rugby club. (Not a tax-deductible donation.)" },
+    { "type": "header", "content": "Size guide" },
+    { "type": "text", "id": "size_guide_heading", "label": "Size guide heading", "default": "Size guide" },
+    { "type": "richtext", "id": "size_guide", "label": "Size guide content", "info": "Shown in a popup from the \"Size guide\" link next to the size selector. Paste a sizing table or measurements. Leave empty to hide the link.", "default": "<p>Measurements are body measurements in inches. Unisex fit — size down for a trimmer cut.</p>" }
   ],
   "blocks": [
+    { "type": "@app" },
     {
       "type": "trust",
       "name": "Trust row",

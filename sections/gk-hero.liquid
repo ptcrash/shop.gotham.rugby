@@ -1,18 +1,36 @@
 {% comment %}
   Gotham Knights homepage hero — "Split Kit" direction.
-  Navy angled copy panel on the left, product/crest stand-in on the right.
+  Navy angled copy panel on one side, product/crest stand-in on the other.
+  The headline is split: a white line + a gold accent line ("… Made for the city.").
+  Layout (image left/right), text colour and an optional image overlay are all
+  editable from the theme editor.
 {% endcomment %}
 
 {% liquid
   assign hero_img = section.settings.image
+  assign layout_class = 'gk-hero--image-right'
+  if section.settings.layout == 'image_left'
+    assign layout_class = 'gk-hero--image-left'
+  endif
+  assign overlay = section.settings.overlay_opacity | default: 0
 %}
 
-<section class="gk-hero full-width">
+<section
+  class="gk-hero full-width {{ layout_class }}"
+  style="--gk-hero-text: {{ section.settings.text_color | default: '#ffffff' }}; --gk-hero-accent: {{ section.settings.accent_color | default: '#FEC526' }};"
+>
   <div class="gk-hero-media">
     {% if hero_img %}
-      {{ hero_img | image_url: width: 900 | image_tag: loading: 'eager', widths: '600,900,1200', class: 'gk-hero-photo', alt: hero_img.alt | default: section.settings.heading | escape }}
+      {{
+        hero_img
+        | image_url: width: 900
+        | image_tag: loading: 'eager', widths: '600,900,1200', class: 'gk-hero-photo', alt: hero_img.alt | default: section.settings.heading | escape
+      }}
     {% else %}
       <img src="{{ 'gk-shield-2c.svg' | asset_url }}" alt="{{ section.settings.heading | escape }}" width="150" height="150" class="gk-hero-crest">
+    {% endif %}
+    {% if hero_img and overlay > 0 %}
+      <span class="gk-hero-overlay" aria-hidden="true" style="opacity: {{ overlay | divided_by: 100.0 }};"></span>
     {% endif %}
     {% if section.settings.badge != blank %}<span class="gk-hero-badge">{{ section.settings.badge }}</span>{% endif %}
     {% unless hero_img %}<span class="gk-hero-note">◇ crest stand-in</span>{% endunless %}
@@ -22,7 +40,10 @@
     {% if section.settings.eyebrow != blank %}
       <div class="gk-hero-eyebrow"><span class="gk-hero-tick"></span>{{ section.settings.eyebrow }}</div>
     {% endif %}
-    <h1 class="gk-hero-title gk-athletic">{{ section.settings.heading }}</h1>
+    <h1 class="gk-hero-title gk-athletic">
+      {%- if section.settings.heading != blank -%}<span class="gk-hero-line">{{ section.settings.heading }}</span>{%- endif -%}
+      {%- if section.settings.heading_accent != blank -%}<span class="gk-hero-line accent">{{ section.settings.heading_accent }}</span>{%- endif -%}
+    </h1>
     {% if section.settings.subheading != blank %}<p class="gk-hero-sub">{{ section.settings.subheading }}</p>{% endif %}
     <div class="gk-hero-cta">
       {% if section.settings.primary_label != blank %}
@@ -47,6 +68,7 @@
     background-size: 100% 100%, 11px 11px;
   }
   .gk-hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .gk-hero-overlay { position: absolute; inset: 0; background: var(--navy-900); }
   .gk-hero-crest {
     position: absolute; top: 50%; left: 54%; transform: translate(-50%,-50%);
     width: 52%; height: auto; filter: drop-shadow(0 14px 30px rgba(7,17,42,.2));
@@ -54,11 +76,11 @@
   .gk-hero-badge {
     position: absolute; top: 22px; right: 24px; display: inline-flex; align-items: center;
     font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: .08em;
-    color: var(--navy-700); background: var(--gold-500); padding: 6px 10px; border-radius: 3px;
+    color: var(--navy-700); background: var(--gold-500); padding: 6px 10px; border-radius: 3px; z-index: 2;
   }
   .gk-hero-note {
     position: absolute; left: 26px; bottom: 22px; font: 600 11px var(--font-mono);
-    letter-spacing: .12em; text-transform: uppercase; color: var(--navy-400);
+    letter-spacing: .12em; text-transform: uppercase; color: var(--navy-400); z-index: 2;
   }
   .gk-hero-panel {
     position: absolute; top: 0; left: 0; bottom: 0; width: 61%; background: var(--navy-700);
@@ -70,19 +92,38 @@
     font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: .16em;
   }
   .gk-hero-tick { width: 28px; height: 3px; background: var(--gold-500); border-radius: 99px; }
-  .gk-hero-title { color: #fff; font-size: 3.7rem; margin: 16px 0 0; }
-  .gk-hero-title em, .gk-hero-title .accent { color: var(--gold-500); font-style: normal; }
+  .gk-hero-title { color: var(--gk-hero-text, #fff); font-size: 3.7rem; margin: 16px 0 0; }
+  .gk-hero-line { display: block; }
+  .gk-hero-title em, .gk-hero-title .accent { color: var(--gk-hero-accent, var(--gold-500)); font-style: normal; }
   .gk-hero-sub { color: var(--navy-100); font-size: 1.1rem; line-height: 1.5; max-width: 40ch; margin: 18px 0 28px; }
   .gk-hero-cta { display: flex; gap: 13px; flex-wrap: wrap; }
   .gk-hero-meta {
     margin-top: 22px; font: 600 12px var(--font-mono); letter-spacing: .1em;
     text-transform: uppercase; color: var(--navy-200);
   }
+
+  /* Image-left variant: mirror media + panel */
+  .gk-hero--image-left .gk-hero-media {
+    right: auto; left: 0;
+    background-image: linear-gradient(75deg, transparent 14%, var(--paper) 90%), radial-gradient(var(--navy-700) 1.5px, transparent 1.7px);
+  }
+  .gk-hero--image-left .gk-hero-crest { left: 46%; }
+  .gk-hero--image-left .gk-hero-badge { right: auto; left: 24px; }
+  .gk-hero--image-left .gk-hero-note { left: auto; right: 26px; }
+  .gk-hero--image-left .gk-hero-panel {
+    left: auto; right: 0;
+    clip-path: polygon(86px 0, 100% 0, 100% 100%, 0 100%);
+    padding: 48px 50px 48px 140px; align-items: flex-start;
+  }
+
   @media (max-width: 860px) {
     .gk-hero { min-height: 0; }
-    .gk-hero-media { position: relative; width: 100%; height: 250px; }
-    .gk-hero-crest { position: absolute; left: 50%; height: 74%; width: auto; }
-    .gk-hero-panel {
+    .gk-hero-media,
+    .gk-hero--image-left .gk-hero-media { position: relative; width: 100%; height: 250px; }
+    .gk-hero-crest,
+    .gk-hero--image-left .gk-hero-crest { position: absolute; left: 50%; height: 74%; width: auto; }
+    .gk-hero-panel,
+    .gk-hero--image-left .gk-hero-panel {
       position: relative; width: 100%; clip-path: none; padding: 30px 20px 32px;
     }
     .gk-hero-title { font-size: 2.15rem; }
@@ -96,10 +137,23 @@
   "name": "Hero",
   "settings": [
     { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "New drop · Core Essentials" },
-    { "type": "textarea", "id": "heading", "label": "Heading", "default": "Built for the pitch. Made for the city." },
+    { "type": "textarea", "id": "heading", "label": "Heading (white line)", "default": "Built for the pitch." },
+    { "type": "textarea", "id": "heading_accent", "label": "Heading accent (gold line)", "info": "Shown below the heading in the accent colour.", "default": "Made for the city." },
     { "type": "textarea", "id": "subheading", "label": "Subheading", "default": "The Club Crest Tee — heavyweight cotton, an embroidered dragon, built to outlast the season." },
+    {
+      "type": "select", "id": "layout", "label": "Image position", "default": "image_right",
+      "options": [
+        { "value": "image_right", "label": "Image right" },
+        { "value": "image_left", "label": "Image left" }
+      ]
+    },
     { "type": "image_picker", "id": "image", "label": "Hero image (optional — falls back to crest)" },
+    { "type": "range", "id": "overlay_opacity", "min": 0, "max": 80, "step": 5, "unit": "%", "label": "Image overlay", "info": "Darkens the hero image for legibility.", "default": 0 },
     { "type": "text", "id": "badge", "label": "Image badge", "default": "New Drop" },
+    { "type": "header", "content": "Colours" },
+    { "type": "color", "id": "text_color", "label": "Heading text colour", "default": "#ffffff" },
+    { "type": "color", "id": "accent_color", "label": "Accent line colour", "default": "#FEC526" },
+    { "type": "header", "content": "Buttons & meta" },
     { "type": "text", "id": "primary_label", "label": "Primary button", "default": "Shop the drop" },
     { "type": "url", "id": "primary_url", "label": "Primary link" },
     { "type": "text", "id": "secondary_label", "label": "Secondary button", "default": "Explore collection" },
