@@ -1,0 +1,34 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-contact",
+      "blocks": {
+        "email": {
+          "type": "detail",
+          "settings": {
+            "label": "Email",
+            "value": "<p>hello@gotham.rugby</p>"
+          }
+        },
+        "location": {
+          "type": "detail",
+          "settings": {
+            "label": "Find us",
+            "value": "<p>New York City</p>"
+          }
+        },
+        "response": {
+          "type": "detail",
+          "settings": {
+            "label": "Response time",
+            "value": "<p>Within two business days</p>"
+          }
+        }
+      },
+      "block_order": ["email", "location", "response"],
+      "settings": {}
+    }
+  },
+  "order": ["main"]
+}
+

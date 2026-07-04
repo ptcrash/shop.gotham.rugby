@@ -1,0 +1,285 @@
+{% comment %}
+  Gotham Knights promo pop-up — an accessible modal that renders site-wide from
+  the footer group. Ships DISABLED by default (zero visual impact) and is fully
+  style-ready: navy card, gold button, optional crest, link-button OR newsletter
+  email capture, delay / exit-intent / scroll triggers, and once-per-session
+  suppression via web storage. Merchants flip "Enable pop-up" in the editor.
+{% endcomment %}
+
+{%- liquid
+  assign enabled = section.settings.enable
+  assign in_editor = false
+  if request.design_mode
+    assign in_editor = true
+  endif
+-%}
+
+{%- if enabled or in_editor -%}
+  {%- assign labelledby = 'gk-popup-title-' | append: section.id -%}
+  {%- assign describedby = 'gk-popup-body-' | append: section.id -%}
+  <div
+    class="gk-popup{% if in_editor %} is-open{% endif %}"
+    id="gk-popup-{{ section.id }}"
+    data-gk-popup
+    data-trigger="{{ section.settings.trigger }}"
+    data-delay="{{ section.settings.delay_seconds }}"
+    data-scroll="{{ section.settings.scroll_percent }}"
+    data-frequency="{{ section.settings.frequency }}"
+    data-editor="{% if in_editor %}true{% else %}false{% endif %}"
+    hidden
+  >
+    <div class="gk-popup-backdrop" data-gk-popup-close tabindex="-1"></div>
+    <div
+      class="gk-popup-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="{{ labelledby }}"
+      {% if section.settings.body != blank %}aria-describedby="{{ describedby }}"{% endif %}
+    >
+      <button type="button" class="gk-popup-close" data-gk-popup-close aria-label="Close dialog">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+      </button>
+
+      {% if section.settings.image != blank %}
+        <div class="gk-popup-media">
+          {{ section.settings.image | image_url: width: 760 | image_tag: loading: 'lazy', widths: '380,600,760', sizes: '(max-width: 520px) 90vw, 420px', class: 'gk-popup-img', alt: section.settings.image.alt | default: section.settings.heading | escape }}
+        </div>
+      {% elsif section.settings.show_crest %}
+        <div class="gk-popup-crest" aria-hidden="true">
+          <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" width="56" height="66" loading="lazy">
+        </div>
+      {% endif %}
+
+      <div class="gk-popup-content">
+        {% if section.settings.eyebrow != blank %}
+          <div class="gk-eyebrow-gold gk-popup-eyebrow">{{ section.settings.eyebrow }}</div>
+        {% endif %}
+        <h2 class="gk-popup-title gk-athletic" id="{{ labelledby }}">{{ section.settings.heading | default: 'Join the squad' }}</h2>
+        {% if section.settings.body != blank %}
+          <p class="gk-popup-body" id="{{ describedby }}">{{ section.settings.body }}</p>
+        {% endif %}
+
+        {% if section.settings.content_type == 'newsletter' %}
+          {% form 'customer', class: 'gk-popup-form' %}
+            <input type="hidden" name="contact[tags]" value="newsletter">
+            {% if form.posted_successfully? %}
+              <p class="gk-popup-success">{{ section.settings.success_text | default: "You're on the list — check your inbox." }}</p>
+            {% else %}
+              {% if form.errors %}
+                <p class="gk-popup-error" role="alert">{{ form.errors | default_errors }}</p>
+              {% endif %}
+              <div class="gk-popup-formrow">
+                <input type="email" name="contact[email]" class="gk-popup-input" placeholder="{{ section.settings.placeholder | default: 'you@email.com' | escape }}" aria-label="Email address" required>
+                <button type="submit" class="gk-btn gk-btn-primary gk-popup-btn">{{ section.settings.button_label | default: 'Sign up' }}</button>
+              </div>
+            {% endif %}
+          {% endform %}
+        {% elsif section.settings.button_label != blank %}
+          <a class="gk-btn gk-btn-primary gk-popup-btn gk-popup-btn-link" href="{{ section.settings.button_url | default: routes.root_url }}">{{ section.settings.button_label }}</a>
+        {% endif %}
+
+        {% if section.settings.fine_print != blank %}
+          <p class="gk-popup-fine">{{ section.settings.fine_print }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var root = document.getElementById('gk-popup-{{ section.id }}');
+      if (!root) return;
+      var card = root.querySelector('.gk-popup-card');
+      var editor = root.getAttribute('data-editor') === 'true';
+      var frequency = root.getAttribute('data-frequency') || 'session';
+      var trigger = root.getAttribute('data-trigger') || 'delay';
+      var delay = parseFloat(root.getAttribute('data-delay')) || 0;
+      var scrollPct = parseFloat(root.getAttribute('data-scroll')) || 50;
+      var storeKey = 'gk-popup-seen-{{ section.id }}';
+      var opened = false;
+      var lastFocused = null;
+
+      function store() {
+        try { return frequency === 'persistent' ? window.localStorage : window.sessionStorage; }
+        catch (e) { return null; }
+      }
+      function alreadySeen() {
+        if (editor || frequency === 'always') return false;
+        var s = store();
+        try { return s && s.getItem(storeKey) === '1'; } catch (e) { return false; }
+      }
+      function markSeen() {
+        if (editor || frequency === 'always') return;
+        var s = store();
+        try { if (s) s.setItem(storeKey, '1'); } catch (e) {}
+      }
+      function focusables() {
+        return Array.prototype.slice.call(card.querySelectorAll(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )).filter(function (el) { return el.offsetParent !== null; });
+      }
+      function onKeydown(e) {
+        if (e.key === 'Escape' || e.key === 'Esc') { close(); return; }
+        if (e.key !== 'Tab') return;
+        var f = focusables();
+        if (!f.length) { e.preventDefault(); return; }
+        var first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+      function open() {
+        if (opened) return;
+        opened = true;
+        lastFocused = document.activeElement;
+        root.hidden = false;
+        // force reflow so the transition runs
+        void root.offsetWidth;
+        root.classList.add('is-open');
+        document.addEventListener('keydown', onKeydown);
+        var f = focusables();
+        (f[0] || card).focus();
+        markSeen();
+      }
+      function close() {
+        root.classList.remove('is-open');
+        document.removeEventListener('keydown', onKeydown);
+        window.setTimeout(function () { if (!root.classList.contains('is-open')) root.hidden = true; }, 260);
+        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+      }
+
+      root.querySelectorAll('[data-gk-popup-close]').forEach(function (el) {
+        el.addEventListener('click', close);
+      });
+
+      // In the theme editor, show immediately for preview and stop here.
+      if (editor) {
+        root.hidden = false;
+        root.classList.add('is-open');
+        document.addEventListener('keydown', onKeydown);
+        root.querySelectorAll('[data-gk-popup-close]').forEach(function (el) {
+          el.addEventListener('click', function () { root.classList.remove('is-open'); });
+        });
+        return;
+      }
+
+      if (alreadySeen()) return;
+
+      if (trigger === 'delay') {
+        window.setTimeout(open, Math.max(0, delay) * 1000);
+      } else if (trigger === 'exit') {
+        var exitHandler = function (e) {
+          if (e.clientY <= 0) { open(); document.removeEventListener('mouseout', exitHandler); }
+        };
+        document.addEventListener('mouseout', exitHandler);
+        // Mobile fallback: exit-intent is desktop-only, so also open after a long delay.
+        window.setTimeout(open, 25000);
+      } else if (trigger === 'scroll') {
+        var scrollHandler = function () {
+          var doc = document.documentElement;
+          var scrolled = (doc.scrollTop || document.body.scrollTop);
+          var height = (doc.scrollHeight - doc.clientHeight) || 1;
+          if ((scrolled / height) * 100 >= scrollPct) { open(); window.removeEventListener('scroll', scrollHandler); }
+        };
+        window.addEventListener('scroll', scrollHandler, { passive: true });
+      }
+    })();
+  </script>
+{%- endif -%}
+
+{% stylesheet %}
+  .gk-popup {
+    position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
+    padding: 20px; opacity: 0; visibility: hidden;
+    transition: opacity var(--dur-base) var(--ease-standard), visibility var(--dur-base) var(--ease-standard);
+  }
+  .gk-popup.is-open { opacity: 1; visibility: visible; }
+  .gk-popup-backdrop { position: absolute; inset: 0; background: rgba(7,17,42,.66); }
+  .gk-popup-card {
+    position: relative; z-index: 1; width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto;
+    background: var(--navy-700); color: #fff; border-radius: var(--radius-lg);
+    border: 1px solid rgba(255,255,255,.1); box-shadow: 0 24px 60px rgba(7,17,42,.5);
+    padding: 34px 32px 30px; text-align: center;
+    transform: translateY(14px) scale(.98); transition: transform var(--dur-slow) var(--ease-out);
+    outline: none;
+  }
+  .gk-popup.is-open .gk-popup-card { transform: translateY(0) scale(1); }
+  .gk-popup-close {
+    position: absolute; top: 12px; right: 12px; width: 36px; height: 36px;
+    display: grid; place-items: center; border: 0; border-radius: var(--radius-pill);
+    background: rgba(255,255,255,.08); color: var(--navy-100); cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
+  }
+  .gk-popup-close:hover { background: rgba(255,255,255,.18); color: #fff; }
+  .gk-popup-close:focus-visible { outline: 2px solid var(--gold-500); outline-offset: 2px; }
+  .gk-popup-media { margin: -4px 0 18px; border-radius: var(--radius-md); overflow: hidden; }
+  .gk-popup-img { display: block; width: 100%; height: auto; }
+  .gk-popup-crest { margin: 0 0 16px; }
+  .gk-popup-crest img { height: 60px; width: auto; display: inline-block; }
+  .gk-popup-eyebrow { color: var(--gold-400); margin-bottom: 8px; }
+  .gk-popup-title { color: #fff; font-size: 1.9rem; line-height: 1; margin: 0 0 10px; }
+  .gk-popup-body { color: var(--navy-100); font-size: 15px; line-height: 1.55; margin: 0 auto 20px; max-width: 40ch; }
+  .gk-popup-form { margin: 0; }
+  .gk-popup-formrow { display: flex; flex-wrap: wrap; gap: 10px; }
+  .gk-popup-input {
+    flex: 1; min-width: 180px; font: 500 15px var(--font-body); padding: 13px 15px;
+    border: 2px solid rgba(255,255,255,.28); border-radius: var(--radius-sm);
+    background: var(--navy-800); color: #fff; outline: none;
+  }
+  .gk-popup-input::placeholder { color: var(--navy-300); }
+  .gk-popup-input:focus-visible { border-color: var(--gold-500); }
+  .gk-popup-btn { justify-content: center; }
+  .gk-popup-btn-link { display: inline-flex; margin-top: 4px; }
+  .gk-popup-success { color: var(--gold-400); font: 700 15px var(--font-body); margin: 0; }
+  .gk-popup-error { color: var(--gold-300); font: 500 13px var(--font-body); margin: 0 0 12px; }
+  .gk-popup-fine { color: var(--navy-300); font-size: 12px; line-height: 1.5; margin: 16px 0 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gk-popup, .gk-popup-card { transition: none; }
+  }
+  @media (max-width: 520px) {
+    .gk-popup-card { padding: 28px 20px 24px; }
+    .gk-popup-title { font-size: 1.6rem; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Promo pop-up",
+  "settings": [
+    { "type": "checkbox", "id": "enable", "label": "Enable pop-up", "default": false, "info": "Off by default. When off the pop-up never renders on the storefront." },
+    { "type": "header", "content": "Content" },
+    { "type": "select", "id": "content_type", "label": "Pop-up type", "default": "newsletter", "options": [
+      { "value": "newsletter", "label": "Email capture (newsletter)" },
+      { "value": "button", "label": "Announcement + button" }
+    ] },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Members get first dibs" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Join the drop list" },
+    { "type": "textarea", "id": "body", "label": "Body", "default": "New kit, restocks, and the 25 Years capsule — straight to your inbox. Every order backs NYC's inclusive rugby club." },
+    { "type": "image_picker", "id": "image", "label": "Image", "info": "Optional. Replaces the crest at the top of the card." },
+    { "type": "checkbox", "id": "show_crest", "label": "Show crest when no image", "default": true },
+    { "type": "text", "id": "fine_print", "label": "Fine print", "default": "No spam, just the good stuff. Unsubscribe anytime." },
+    { "type": "header", "content": "Email capture" },
+    { "type": "text", "id": "placeholder", "label": "Input placeholder", "default": "you@email.com" },
+    { "type": "text", "id": "success_text", "label": "Success message", "default": "You're on the list — check your inbox." },
+    { "type": "header", "content": "Button", "info": "Used when pop-up type is \"Announcement + button\"." },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Sign up" },
+    { "type": "url", "id": "button_url", "label": "Button link" },
+    { "type": "header", "content": "Trigger" },
+    { "type": "select", "id": "trigger", "label": "Show pop-up on", "default": "delay", "options": [
+      { "value": "delay", "label": "Time delay" },
+      { "value": "exit", "label": "Exit intent (desktop)" },
+      { "value": "scroll", "label": "Scroll depth" }
+    ] },
+    { "type": "range", "id": "delay_seconds", "label": "Delay", "min": 0, "max": 30, "step": 1, "unit": "s", "default": 5, "info": "Used with the Time delay trigger." },
+    { "type": "range", "id": "scroll_percent", "label": "Scroll depth", "min": 10, "max": 90, "step": 5, "unit": "%", "default": 40, "info": "Used with the Scroll depth trigger." },
+    { "type": "select", "id": "frequency", "label": "Show frequency", "default": "session", "options": [
+      { "value": "always", "label": "Every page load (testing)" },
+      { "value": "session", "label": "Once per browsing session" },
+      { "value": "persistent", "label": "Once per visitor" }
+    ] }
+  ],
+  "presets": [
+    { "name": "Promo pop-up" }
+  ]
+}
+{% endschema %}

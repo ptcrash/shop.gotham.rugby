@@ -1,9 +1,6 @@
 <!doctype html>
 <html lang="{{ request.locale.iso_code }}">
   <head>
-    {% # Inlined CSS Variables %}
-    {% render 'css-variables' %}
-
     {% comment %}
       Font preloading:
       1. Preconnect to font CDN for faster connection
@@ -20,16 +17,30 @@
     {% # Load and preload the critical CSS %}
     {{ 'critical.css' | asset_url | stylesheet_tag: preload: true }}
 
+    {% # Gotham Knights design system (tokens, patterns, components) %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="{{ 'gotham-harbour-bold.ttf' | asset_url }}" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="{{ 'gotham-black.otf' | asset_url }}" as="font" type="font/otf" crossorigin>
+    {{ 'gotham-ds.css' | asset_url | stylesheet_tag }}
+
+    {% comment %} Inlined CSS variables — emitted AFTER gotham-ds.css so merchant brand settings (colors/fonts) override the bundled :root defaults. {% endcomment %}
+    {% render 'css-variables' %}
+
     {% # Social, title, etc. %}
     {% render 'meta-tags' %}
 
     {{ content_for_header }}
   </head>
 
-  <body>
+  <body class="gk">
+    <a class="skip-to-content-link" href="#main-content">Skip to content</a>
+
     {% sections 'header-group' %}
 
-    {{ content_for_layout }}
+    <main id="main-content" tabindex="-1">
+      {{ content_for_layout }}
+    </main>
 
     {% sections 'footer-group' %}
   </body>

@@ -1,0 +1,85 @@
+{% comment %}
+  Gotham Knights homepage email signup — navy card with a diagonal stripe accent
+  (and an optional crest watermark) plus a customer newsletter form.
+  Background, text colour, the stripe and the crest watermark are all editable.
+{% endcomment %}
+
+<section class="gk-band gk-band-paper full-width">
+  <div
+    class="gk-signup"
+    style="--gk-signup-bg: {{ section.settings.background_color | default: '#0D1D41' }}; --gk-signup-text: {{ section.settings.text_color | default: '#ffffff' }};"
+  >
+    {% if section.settings.show_stripe %}<div class="gk-signup-stripe" aria-hidden="true"></div>{% endif %}
+    {% if section.settings.show_crest %}
+      <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150" class="gk-signup-crest">
+    {% endif %}
+    <div class="gk-signup-copy">
+      {% if section.settings.eyebrow != blank %}<div class="gk-eyebrow-gold gk-eyebrow-onnavy">{{ section.settings.eyebrow }}</div>{% endif %}
+      <h2 class="gk-signup-title gk-athletic">{{ section.settings.heading }}</h2>
+      {% if section.settings.body != blank %}<p class="gk-signup-body">{{ section.settings.body }}</p>{% endif %}
+    </div>
+
+    {% form 'customer', class: 'gk-signup-form' %}
+      <input type="hidden" name="contact[tags]" value="newsletter">
+      {% if form.posted_successfully? %}
+        <p class="gk-signup-success" role="status">{{ section.settings.success_text | default: "Thanks — you're on the list." }}</p>
+      {% else %}
+        {% if form.errors %}
+          <p class="gk-signup-error" role="alert">{{ form.errors | default_errors }}</p>
+        {% endif %}
+        <input type="email" name="contact[email]" placeholder="{{ section.settings.placeholder | default: 'you@email.com' | escape }}" aria-label="Email address" required>
+        <button type="submit" class="gk-btn gk-btn-primary gk-signup-btn">{{ section.settings.button_label | default: 'Sign up' }}</button>
+      {% endif %}
+    {% endform %}
+  </div>
+</section>
+
+{% stylesheet %}
+  .gk-signup {
+    max-width: var(--gk-content-width); margin: 0 auto; background: var(--gk-signup-bg, var(--navy-700));
+    border-radius: 16px; padding: 44px 46px; position: relative; overflow: hidden;
+    display: flex; gap: 36px; justify-content: space-between; align-items: center; flex-wrap: wrap;
+  }
+  .gk-signup-stripe {
+    position: absolute; top: 0; bottom: 0; right: 0; width: 34%;
+    background: repeating-linear-gradient(-45deg, var(--navy-800) 0 18px, var(--navy-700) 18px 36px); opacity: .5;
+  }
+  .gk-signup-crest { position: absolute; top: 50%; right: -3%; transform: translateY(-50%); height: 170%; width: auto; opacity: .07; }
+  .gk-signup-copy { position: relative; max-width: 52ch; }
+  .gk-signup-title { color: var(--gk-signup-text, #fff); font-size: 2.1rem; line-height: 1; margin: 0 0 8px; }
+  .gk-signup-body { color: var(--navy-100); font-size: 1rem; margin: 0; }
+  .gk-signup-form { position: relative; display: flex; gap: 10px; flex-wrap: wrap; min-width: 320px; flex: 1; max-width: 420px; margin: 0; }
+  .gk-signup-form input[type="email"] {
+    flex: 1; min-width: 190px; font: 500 15px var(--font-body); padding: 14px 16px;
+    border: 2px solid rgba(255,255,255,.28); border-radius: 6px; background: var(--navy-800); color: #fff; outline: none;
+  }
+  .gk-signup-form input::placeholder { color: var(--navy-300); }
+  .gk-signup-btn { font-size: 14px; padding: 14px 24px; }
+  .gk-signup-success { position: relative; color: var(--gold-400); font: 700 15px var(--font-body); margin: 0; }
+  .gk-signup-error { position: relative; flex: 1 0 100%; color: var(--gold-400); font: 600 13px var(--font-body); margin: 0; }
+  @media (max-width: 860px) {
+    .gk-signup { padding: 30px 22px; }
+    .gk-signup-form { max-width: none; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Email signup",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Join the drop list" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "First dibs on every drop." },
+    { "type": "textarea", "id": "body", "label": "Body", "default": "New kit, restocks, and the 25 Years capsule — straight to your inbox. No spam, just the good stuff." },
+    { "type": "text", "id": "placeholder", "label": "Input placeholder", "default": "you@email.com" },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Sign up" },
+    { "type": "text", "id": "success_text", "label": "Success message", "default": "Thanks — you're on the list." },
+    { "type": "header", "content": "Style" },
+    { "type": "checkbox", "id": "show_stripe", "label": "Show diagonal stripe accent", "default": true },
+    { "type": "checkbox", "id": "show_crest", "label": "Show crest watermark", "default": false },
+    { "type": "color", "id": "background_color", "label": "Card background", "default": "#0D1D41" },
+    { "type": "color", "id": "text_color", "label": "Heading colour", "default": "#ffffff" }
+  ],
+  "presets": [{ "name": "Email signup" }],
+  "disabled_on": { "groups": ["header", "footer"] }
+}
+{% endschema %}

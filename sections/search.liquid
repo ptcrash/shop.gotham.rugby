@@ -1,70 +1,150 @@
 {% comment %}
-  This section is used in the search template to render search results for
-  products, articles, and pages.
-
+  Gotham Knights search results — navy hero with a search field, result count,
+  a grid mixing product cards (product-card) with article/page result cards,
+  an empty state, and pagination.
   https://shopify.dev/docs/storefronts/themes/architecture/templates/search
 {% endcomment %}
 
-<h1>{{ 'search.title' | t }}</h1>
+{% assign per_page = section.settings.results_per_page | default: 24 %}
 
-<form action="{{ routes.search_url }}" method="get" role="search">
-  <input
-    type="search"
-    size="50"
-    name="q"
-    value="{{ search.terms | escape }}"
-    placeholder="{{ 'search.placeholder' | t }}"
-  >
-  <button type="submit">{{ 'search.submit' | t }}</button>
-</form>
+<div class="gk-search">
+  <div class="gk-search-hero full-width">
+    <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150" class="gk-search-crest">
+    <div class="gk-band-inner gk-search-hero-inner">
+      <nav class="gk-breadcrumb" aria-label="Breadcrumb">
+        <a href="{{ routes.root_url }}">Home</a> /
+        <span>Search</span>
+      </nav>
+      <h1 class="gk-search-title gk-athletic">{{ section.settings.heading | default: 'Search' }}</h1>
 
-{% if search.performed %}
-  {% if search.results_count == 0 %}
-    <p>{{ 'search.no_results_html' | t: terms: search.terms }}</p>
-  {% else %}
-    <p>{{ 'search.results_for_html' | t: terms: search.terms, count: search.results_count }}</p>
+      <form action="{{ routes.search_url }}" method="get" role="search" class="gk-search-form">
+        <label for="gk-search-input" class="gk-visually-hidden">{{ 'search.title' | t }}</label>
+        <svg class="gk-search-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <input
+          type="search"
+          id="gk-search-input"
+          name="q"
+          value="{{ search.terms | escape }}"
+          placeholder="{{ section.settings.placeholder | default: 'Search kit, gear, and stories…' }}"
+          autocomplete="off"
+        >
+        <button type="submit" class="gk-btn gk-btn-primary gk-search-submit">{{ 'search.submit' | t }}</button>
+      </form>
+    </div>
+  </div>
 
-    <div class="search-results">
-      {% paginate search.results by 20 %}
-        {% # Search result items may be an article, a page, or a product. %}
-        {% for result in search.results %}
-          <div class="search-result">
-            {% assign featured_image = result.featured_image | default: result.image %}
-            {% if featured_image %}
-              {% render 'image', class: 'search-result__image', image: featured_image, url: result.url, width: 400 %}
-            {% endif %}
-            <div class="search-result__content">
-              <p>
-                {{ result.title | link_to: result.url }}
-                {% if result.price %}
-                  {{ result.price | money_with_currency }}
-                {% endif %}
-              </p>
-            </div>
+  {% if search.performed %}
+    <div class="gk-band gk-band-paper full-width">
+      <div class="gk-band-inner">
+        {% if search.results_count == 0 %}
+          <div class="gk-search-empty">
+            <span class="gk-search-empty-crest">{{ 'gk-shield-2c.svg' | inline_asset_content }}</span>
+            <h2 class="gk-search-empty-title gk-athletic">No results</h2>
+            <p class="gk-search-empty-copy">We couldn't find anything for "{{ search.terms | escape }}". Check the spelling or try a different term.</p>
+            <a class="gk-btn gk-btn-invert" href="{{ routes.all_products_collection_url }}">Browse the shop</a>
           </div>
-        {% endfor %}
+        {% else %}
+          <p class="gk-search-count">{{ search.results_count }} result{% if search.results_count != 1 %}s{% endif %} for "{{ search.terms | escape }}"</p>
 
-        {{ paginate | default_pagination }}
-      {% endpaginate %}
+          {% paginate search.results by per_page %}
+            <div class="gk-pgrid gk-search-grid">
+              {% for result in search.results %}
+                {% if result.object_type == 'product' %}
+                  {% render 'product-card', product: result %}
+                {% else %}
+                  {% assign r_image = result.featured_image | default: result.image %}
+                  <a class="gk-rcard" href="{{ result.url }}">
+                    <div class="gk-rcard-media">
+                      {% if r_image %}
+                        {{ r_image | image_url: width: 600 | image_tag: loading: 'lazy', widths: '280,372,560,600', class: 'gk-rcard-img', alt: result.title | escape }}
+                      {% else %}
+                        <span class="gk-pcard-standin gk-standin-light gk-rcard-standin">{{ 'gk-shield-2c.svg' | inline_asset_content }}</span>
+                      {% endif %}
+                      <span class="gk-badge gk-badge-navy gk-rcard-badge">{% if result.object_type == 'article' %}Article{% else %}Page{% endif %}</span>
+                    </div>
+                    <div class="gk-rcard-body">
+                      <h3 class="gk-rcard-title">{{ result.title }}</h3>
+                      {% if result.object_type == 'article' and result.excerpt_or_content != blank %}
+                        <p class="gk-rcard-excerpt">{{ result.excerpt_or_content | strip_html | truncatewords: 22 }}</p>
+                      {% elsif result.content != blank %}
+                        <p class="gk-rcard-excerpt">{{ result.content | strip_html | truncatewords: 22 }}</p>
+                      {% endif %}
+                      <span class="gk-tlink gk-rcard-link">Read more</span>
+                    </div>
+                  </a>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            {% if paginate.pages > 1 %}
+              <nav class="gk-pagination" aria-label="Pagination">{{ paginate | default_pagination }}</nav>
+            {% endif %}
+          {% endpaginate %}
+        {% endif %}
+      </div>
+    </div>
+  {% else %}
+    <div class="gk-band gk-band-paper full-width">
+      <div class="gk-band-inner">
+        <p class="gk-search-prompt">{{ section.settings.prompt | default: 'Type above to search the store.' }}</p>
+      </div>
     </div>
   {% endif %}
-{% endif %}
+</div>
 
 {% stylesheet %}
-  .search-results {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  .gk-search-hero { position: relative; background: var(--navy-700); overflow: hidden; padding: 40px 50px 44px; }
+  .gk-search-crest { position: absolute; top: 50%; right: -3%; transform: translateY(-50%); height: 180%; width: auto; opacity: .06; }
+  .gk-search-hero-inner { position: relative; }
+  .gk-search-title { color: #fff; font-size: 3rem; line-height: .95; margin: 0 0 22px; }
+  .gk-search-form { position: relative; display: flex; gap: 10px; max-width: 620px; flex-wrap: wrap; }
+  .gk-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--navy-300); pointer-events: none; }
+  .gk-search-form input[type="search"] {
+    flex: 1; min-width: 220px; font: 500 16px var(--font-body); padding: 15px 16px 15px 46px;
+    border: 2px solid rgba(255,255,255,.28); border-radius: 6px; background: var(--navy-800); color: #fff; outline: none;
   }
-  .search-results .prev,
-  .search-results .page,
-  .search-results .next {
-    grid-column: 1 / -1;
+  .gk-search-form input::placeholder { color: var(--navy-300); }
+  .gk-search-submit { font-size: 14px; }
+
+  .gk-search-count { font: 600 13px var(--font-mono); color: var(--ink-500); margin: 0 0 26px; }
+  .gk-search-prompt { text-align: center; padding: 30px 0; color: var(--ink-500); font-size: 1rem; }
+
+  .gk-search-empty { text-align: center; padding: 30px 0 40px; }
+  .gk-search-empty-crest { display: inline-flex; width: 96px; margin-bottom: 20px; }
+  .gk-search-empty-crest svg { width: 100%; height: auto; }
+  .gk-search-empty-title { font-size: 2rem; color: var(--navy-700); margin: 0 0 10px; }
+  .gk-search-empty-copy { font: 400 16px/1.55 var(--font-body); color: var(--ink-700); max-width: 44ch; margin: 0 auto 24px; }
+
+  .gk-rcard { position: relative; display: flex; flex-direction: column; text-decoration: none; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md, 10px); overflow: hidden; transition: transform .22s var(--ease-standard), box-shadow .22s var(--ease-standard); }
+  .gk-rcard:hover { transform: translateY(-5px); box-shadow: 0 18px 40px rgba(7,17,42,.2); }
+  .gk-rcard-media { position: relative; aspect-ratio: 4/5; background: var(--paper-2); overflow: hidden; }
+  .gk-rcard-img { width: 100%; height: 100%; object-fit: cover; }
+  .gk-rcard-standin { width: 100%; height: 100%; }
+  .gk-rcard-badge { top: 12px; left: 12px; }
+  .gk-rcard-body { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 9px; }
+  .gk-rcard-title { margin: 0; font: 700 17px/1.2 var(--font-heading); color: var(--navy-700); }
+  .gk-rcard-excerpt { margin: 0; font: 400 14px/1.55 var(--font-body); color: var(--ink-700); }
+  .gk-rcard-link { align-self: flex-start; margin-top: 4px; }
+
+  .gk-pagination { display: flex; justify-content: center; gap: 8px; margin-top: 44px; font: 600 14px var(--font-mono); }
+  .gk-pagination a, .gk-pagination span { color: var(--navy-500); text-decoration: none; padding: 8px 12px; border-radius: 6px; }
+  .gk-pagination a:hover { background: var(--paper-2); }
+  .gk-pagination .current { color: var(--navy-700); background: var(--gold-500); }
+
+  @media (max-width: 860px) {
+    .gk-search-hero { padding: 26px 18px 30px; }
+    .gk-search-title { font-size: 2.1rem; }
   }
 {% endstylesheet %}
 
 {% schema %}
 {
-  "name": "t:general.search",
-  "settings": []
+  "name": "Search results",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Search" },
+    { "type": "text", "id": "placeholder", "label": "Search field placeholder", "default": "Search kit, gear, and stories…" },
+    { "type": "text", "id": "prompt", "label": "Empty (no query) prompt", "default": "Type above to search the store." },
+    { "type": "range", "id": "results_per_page", "label": "Results per page", "min": 8, "max": 48, "step": 4, "default": 24 }
+  ]
 }
 {% endschema %}

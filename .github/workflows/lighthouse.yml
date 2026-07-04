@@ -1,0 +1,50 @@
+name: Lighthouse CI
+
+# Runs Shopify's Lighthouse CI against a preview of the PR's theme, auditing
+# performance, accessibility, best practices and SEO on the home, product and
+# collection pages. It is gated on the SHOP_STORE secret: until the repo secrets
+# are configured it skips cleanly (green) rather than failing every PR.
+#
+# To enable, add these repository secrets (Settings > Secrets and variables > Actions):
+#   SHOP_STORE                 e.g. q0951j-fv.myshopify.com
+#   SHOP_CLIENT_ID             Shopify dev-dashboard app client id  (scopes: read_products, write_themes)
+#   SHOP_CLIENT_SECRET         Shopify dev-dashboard app client secret
+#   SHOP_STOREFRONT_PASSWORD   storefront password (if the shop is password-protected)
+#   LHCI_GITHUB_APP_TOKEN      Lighthouse CI GitHub App token (for PR status checks)
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    env:
+      SHOP_STORE: ${{ secrets.SHOP_STORE }}
+    steps:
+      - name: Skip notice (secrets not configured)
+        if: env.SHOP_STORE == ''
+        run: echo "::notice::Lighthouse CI skipped — add SHOP_STORE / SHOP_CLIENT_ID / SHOP_CLIENT_SECRET / LHCI_GITHUB_APP_TOKEN repo secrets to enable performance & accessibility audits."
+
+      - uses: actions/checkout@v4
+        if: env.SHOP_STORE != ''
+
+      - name: Run Lighthouse on Shopify theme
+        if: env.SHOP_STORE != ''
+        uses: shopify/lighthouse-ci-action@v1
+        with:
+          store: ${{ secrets.SHOP_STORE }}
+          client_id: ${{ secrets.SHOP_CLIENT_ID }}
+          client_secret: ${{ secrets.SHOP_CLIENT_SECRET }}
+          password: ${{ secrets.SHOP_STOREFRONT_PASSWORD }}
+          lhci_github_app_token: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+          lhci_min_score_performance: 0.6
+          lhci_min_score_accessibility: 0.9

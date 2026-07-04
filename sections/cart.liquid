@@ -1,37 +1,173 @@
 {% comment %}
-  This section is used in the cart template to render /cart page with an
-  overview of the items in customer's cart.
-
+  Gotham Knights cart page — line items, quantity controls, optional order note,
+  optional free-shipping progress bar, and order summary. Fully merchant-editable
+  via the section settings.
   https://shopify.dev/docs/storefronts/themes/architecture/templates/cart
 {% endcomment %}
 
-<h1>{{ 'cart.title' | t }}</h1>
+<div class="gk-cartpage full-width">
+  <div class="gk-band-inner gk-cart-inner">
+    <h1 class="gk-cart-title gk-athletic">{{ 'cart.title' | t | default: 'Your cart' }}</h1>
 
-<form action="{{ routes.cart_url }}" method="post">
-  <table>
-    {% for item in cart.items %}
-      <tr>
-        <td>
-          {% render 'image', image: item.image, url: item.url %}
-        </td>
-        <td>
-          <p>{{ item.product.title }}</p>
-          {{ 'cart.remove' | t | link_to: item.url_to_remove }}
-        </td>
-        <td>
-          <input type="text" name="updates[]" value="{{ item.quantity }}">
-          <input type="submit" value="{{ 'cart.update' | t }}">
-        </td>
-      </tr>
-    {% endfor %}
-  </table>
+    {% if cart.item_count == 0 %}
+      <div class="gk-cart-empty">
+        <span class="gk-pcard-standin gk-standin-dark gk-cart-empty-crest">{{ 'gk-shield-inv.svg' | inline_asset_content }}</span>
+        <p class="gk-cart-empty-title">{{ section.settings.empty_text | default: 'Your cart is empty.' }}</p>
+        <a class="gk-btn gk-btn-primary" href="{{ section.settings.empty_url | default: routes.all_products_collection_url }}">{{ section.settings.empty_button | default: 'Shop the drop' }}</a>
+      </div>
+    {% else %}
+      {% if section.settings.show_free_shipping and section.settings.free_shipping_threshold > 0 %}
+        {%- assign threshold = section.settings.free_shipping_threshold | times: 100 -%}
+        {%- assign remaining = threshold | minus: cart.total_price -%}
+        <div class="gk-cart-ship">
+          {% if remaining > 0 %}
+            <p class="gk-cart-ship-text">You're <strong>{{ remaining | money }}</strong> away from free shipping.</p>
+          {% else %}
+            <p class="gk-cart-ship-text">🎉 You've unlocked <strong>free shipping</strong>.</p>
+          {% endif %}
+          <div class="gk-cart-ship-track">
+            {%- assign pct = cart.total_price | times: 100 | divided_by: threshold -%}
+            <span class="gk-cart-ship-fill" style="width: {% if pct > 100 %}100{% else %}{{ pct }}{% endif %}%"></span>
+          </div>
+        </div>
+      {% endif %}
 
-  <input type="submit" name="checkout" value="{{ 'cart.checkout' | t }}">
-</form>
+      <form action="{{ routes.cart_url }}" method="post" id="cart" class="gk-cart-form">
+        <div class="gk-cart-items">
+          {% for item in cart.items %}
+            <div class="gk-cart-item" data-key="{{ item.key }}">
+              <a class="gk-cart-item-media" href="{{ item.url }}">
+                {% if item.image %}
+                  {%- assign item_alt = item.product.title | escape -%}
+                  {{ item.image | image_url: width: 200 | image_tag: loading: 'lazy', widths: '120,200', alt: item_alt, class: 'gk-cart-item-img' }}
+                {% else %}
+                  <span class="gk-pcard-standin gk-standin-dark gk-cart-item-standin">{{ 'gk-shield-inv.svg' | inline_asset_content }}</span>
+                {% endif %}
+              </a>
+              <div class="gk-cart-item-info">
+                <a class="gk-cart-item-title" href="{{ item.url }}">{{ item.product.title }}</a>
+                {% unless item.product.has_only_default_variant %}
+                  <div class="gk-cart-item-variant">{{ item.variant.title }}</div>
+                {% endunless %}
+                {% if item.selling_plan_allocation %}
+                  <div class="gk-cart-item-variant">{{ item.selling_plan_allocation.selling_plan.name }}</div>
+                {% endif %}
+                <div class="gk-cart-item-controls">
+                  <div class="gk-qty gk-cart-qty">
+                    <a class="gk-qty-btn" href="{{ routes.cart_change_url }}?id={{ item.key }}&quantity={{ item.quantity | minus: 1 }}" aria-label="Decrease quantity">−</a>
+                    <input type="number" name="updates[]" value="{{ item.quantity }}" min="0" aria-label="Quantity for {{ item.product.title | escape }}" class="gk-cart-qty-input">
+                    <a class="gk-qty-btn" href="{{ routes.cart_change_url }}?id={{ item.key }}&quantity={{ item.quantity | plus: 1 }}" aria-label="Increase quantity">+</a>
+                  </div>
+                  <a class="gk-cart-remove" href="{{ item.url_to_remove }}">{{ 'cart.remove' | t | default: 'Remove' }}</a>
+                </div>
+              </div>
+              <div class="gk-cart-item-price">
+                {% if item.original_line_price != item.final_line_price %}
+                  <s class="gk-cart-item-was">{{ item.original_line_price | money }}</s>
+                {% endif %}
+                <span>{{ item.final_line_price | money }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="gk-cart-footer">
+          {% if section.settings.show_note %}
+            <div class="gk-cart-note">
+              <label for="CartNote" class="gk-cart-note-label">{{ section.settings.note_label | default: 'Order note' }}</label>
+              <textarea name="note" id="CartNote" class="gk-cart-note-input" placeholder="Special instructions, kit numbers, etc.">{{ cart.note }}</textarea>
+            </div>
+          {% endif %}
+
+          <div class="gk-cart-summary">
+            <div class="gk-cart-subtotal">
+              <span>Subtotal</span>
+              <span class="gk-cart-subtotal-val">{{ cart.total_price | money }}</span>
+            </div>
+            <p class="gk-cart-tax">{{ section.settings.tax_note | default: 'Taxes and shipping calculated at checkout.' }}</p>
+            <button type="submit" name="checkout" class="gk-btn gk-btn-primary gk-cart-checkout">{{ 'cart.checkout' | t | default: 'Checkout' }}</button>
+            <button type="submit" name="update" class="gk-cart-update">Update cart</button>
+            <a class="gk-cart-continue gk-tlink" href="{{ section.settings.empty_url | default: routes.all_products_collection_url }}">Continue shopping</a>
+          </div>
+        </div>
+      </form>
+
+      {% if section.settings.support_note != blank %}
+        <p class="gk-cart-support">{{ section.settings.support_note }}</p>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+{% stylesheet %}
+  .gk-cartpage { padding: 48px 50px 80px; }
+  .gk-cart-title { color: var(--navy-700); font-size: 2.6rem; margin: 0 0 28px; }
+  .gk-cart-empty { text-align: center; padding: 40px 0 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .gk-cart-empty-crest { width: 140px; height: 175px; border-radius: 14px; }
+  .gk-cart-empty-title { font: 600 1.1rem var(--font-body); color: var(--ink-700); margin: 0; }
+
+  .gk-cart-ship { margin-bottom: 28px; background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .gk-cart-ship-text { margin: 0 0 10px; font: 500 14px var(--font-body); color: var(--navy-700); }
+  .gk-cart-ship-track { height: 8px; border-radius: 99px; background: var(--paper-2); overflow: hidden; }
+  .gk-cart-ship-fill { display: block; height: 100%; background: var(--gold-500); border-radius: 99px; transition: width var(--dur-base) var(--ease-standard); }
+
+  .gk-cart-items { display: flex; flex-direction: column; }
+  .gk-cart-item { display: grid; grid-template-columns: 92px 1fr auto; gap: 18px; padding: 20px 0; border-bottom: 1px solid var(--border); align-items: start; }
+  .gk-cart-item:first-child { border-top: 1px solid var(--border); }
+  .gk-cart-item-media { display: block; width: 92px; aspect-ratio: 4/5; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+  .gk-cart-item-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .gk-cart-item-standin { width: 100%; height: 100%; }
+  .gk-cart-item-standin svg { width: 50%; }
+  .gk-cart-item-title { font: 700 16px var(--font-heading); color: var(--navy-700); text-decoration: none; }
+  .gk-cart-item-variant { font: 500 13px var(--font-mono); color: var(--ink-500); margin-top: 4px; }
+  .gk-cart-item-controls { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
+  .gk-cart-qty { height: 40px; }
+  .gk-cart-qty .gk-qty-btn { width: 38px; height: 38px; display: grid; place-items: center; text-decoration: none; }
+  .gk-cart-qty-input { width: 40px; height: 38px; text-align: center; border: 0; background: #fff; font: 600 14px var(--font-mono); color: var(--navy-700); -moz-appearance: textfield; }
+  .gk-cart-qty-input::-webkit-outer-spin-button, .gk-cart-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .gk-cart-remove { font: 500 13px var(--font-body); color: var(--ink-500); text-decoration: underline; }
+  .gk-cart-remove:hover { color: var(--danger); }
+  .gk-cart-item-price { font: 600 15px var(--font-mono); color: var(--navy-700); text-align: right; white-space: nowrap; }
+  .gk-cart-item-was { display: block; color: var(--ink-400); font-size: 13px; }
+
+  .gk-cart-footer { display: grid; grid-template-columns: 1fr 360px; gap: 40px; margin-top: 32px; align-items: start; }
+  .gk-cart-note-label { display: block; font: 700 12px var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--navy-700); margin-bottom: 8px; }
+  .gk-cart-note-input { width: 100%; min-height: 96px; padding: 12px 14px; border: 1.5px solid var(--border-strong); border-radius: 8px; font: 400 14px var(--font-body); color: var(--ink-900); resize: vertical; }
+  .gk-cart-summary { background: var(--surface-card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
+  .gk-cart-subtotal { display: flex; justify-content: space-between; align-items: baseline; font: 700 15px var(--font-body); text-transform: uppercase; letter-spacing: .04em; color: var(--navy-700); }
+  .gk-cart-subtotal-val { font: 600 1.4rem var(--font-mono); }
+  .gk-cart-tax { font: 500 12.5px var(--font-body); color: var(--ink-500); margin: 8px 0 18px; }
+  .gk-cart-checkout { width: 100%; justify-content: center; }
+  .gk-cart-update { display: block; width: 100%; margin-top: 10px; padding: 12px; background: transparent; border: 2px solid var(--navy-700); border-radius: 6px; font: 700 13px var(--font-body); text-transform: uppercase; letter-spacing: .05em; color: var(--navy-700); cursor: pointer; }
+  .gk-cart-continue { display: inline-block; margin-top: 16px; }
+  .gk-cart-support { font: 500 13px/1.5 var(--font-body); color: var(--ink-500); margin: 24px 0 0; max-width: 60ch; }
+
+  @media (max-width: 860px) {
+    .gk-cartpage { padding: 28px 18px 56px; }
+    .gk-cart-title { font-size: 2rem; }
+    .gk-cart-footer { grid-template-columns: 1fr; gap: 24px; }
+    .gk-cart-item { grid-template-columns: 72px 1fr; }
+    .gk-cart-item-media { width: 72px; }
+    .gk-cart-item-price { grid-column: 2; text-align: left; margin-top: 4px; }
+  }
+{% endstylesheet %}
 
 {% schema %}
 {
   "name": "t:general.cart",
-  "settings": []
+  "settings": [
+    { "type": "header", "content": "Free shipping bar" },
+    { "type": "checkbox", "id": "show_free_shipping", "label": "Show free-shipping progress bar", "default": true },
+    { "type": "number", "id": "free_shipping_threshold", "label": "Free shipping threshold (in store currency, whole units)", "default": 75 },
+    { "type": "header", "content": "Order note" },
+    { "type": "checkbox", "id": "show_note", "label": "Show order note field", "default": true },
+    { "type": "text", "id": "note_label", "label": "Note label", "default": "Order note" },
+    { "type": "header", "content": "Copy" },
+    { "type": "text", "id": "tax_note", "label": "Tax/shipping note", "default": "Taxes and shipping calculated at checkout." },
+    { "type": "text", "id": "empty_text", "label": "Empty cart text", "default": "Your cart is empty." },
+    { "type": "text", "id": "empty_button", "label": "Empty cart button", "default": "Shop the drop" },
+    { "type": "url", "id": "empty_url", "label": "Empty cart button link" },
+    { "type": "textarea", "id": "support_note", "label": "Support note", "default": "Every purchase supports Gotham Rugby — kit, pitch time, and travel for NYC's inclusive rugby club. (Not a tax-deductible donation.)" }
+  ]
 }
 {% endschema %}

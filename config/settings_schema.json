@@ -19,6 +19,33 @@
         "id": "type_primary_font",
         "default": "work_sans_n4",
         "label": "t:general.primary"
+      },
+      {
+        "type": "header",
+        "content": "Brand fonts (Gotham Knights)"
+      },
+      {
+        "type": "paragraph",
+        "content": "The theme ships with Hanken Grotesk for headings and body. Turn on the toggle below to replace it with a font from Shopify's library. The athletic display font (GothamHTF) and the wordmark (Harbour) stay bundled and are not editable here."
+      },
+      {
+        "type": "checkbox",
+        "id": "use_custom_fonts",
+        "label": "Use custom heading & body fonts",
+        "info": "When off, the bundled Hanken Grotesk is used.",
+        "default": false
+      },
+      {
+        "type": "font_picker",
+        "id": "heading_font",
+        "default": "work_sans_n7",
+        "label": "Heading font"
+      },
+      {
+        "type": "font_picker",
+        "id": "body_font",
+        "default": "work_sans_n4",
+        "label": "Body font"
       }
     ]
   },
@@ -57,15 +84,48 @@
     "name": "t:general.colors",
     "settings": [
       {
+        "type": "header",
+        "content": "Brand palette (Gotham Knights)"
+      },
+      {
+        "type": "paragraph",
+        "content": "These three colors drive the whole storefront. Leave a swatch empty to fall back to the bundled Gotham default."
+      },
+      {
+        "type": "color",
+        "id": "brand_navy",
+        "default": "#0D1D41",
+        "label": "Brand navy",
+        "info": "Primary brand color. Drives headings, dark bands and the crest."
+      },
+      {
+        "type": "color",
+        "id": "brand_gold",
+        "default": "#FEC526",
+        "label": "Gold",
+        "info": "Accent color for buttons, badges and highlights."
+      },
+      {
+        "type": "color",
+        "id": "brand_paper",
+        "default": "#FBF7EE",
+        "label": "Paper",
+        "info": "Warm off-white page background."
+      },
+      {
+        "type": "header",
+        "content": "Base colors"
+      },
+      {
         "type": "color",
         "id": "background_color",
-        "default": "#FFFFFF",
+        "default": "#FBF7EE",
         "label": "t:labels.background"
       },
       {
         "type": "color",
         "id": "foreground_color",
-        "default": "#333333",
+        "default": "#0D1D41",
         "label": "t:labels.foreground"
       },
       {

@@ -1,1 +1,7 @@
 extends: theme-check:recommended
+
+# The Gotham Knights design system deliberately shares .gk-* component classes
+# across many sections (defined once in assets/gotham-ds.css.liquid), so the
+# scoped-class check is noise for this theme.
+ValidScopedCSSClass:
+  enabled: false

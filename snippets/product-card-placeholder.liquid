@@ -1,0 +1,20 @@
+{% comment %}
+  Static placeholder card used when a section has no products yet (fresh store).
+  Mirrors product-card visuals with a crest stand-in and no add-to-cart.
+
+  @param {number} [dark] - 1 for the dark crest stand-in, else light
+{% endcomment %}
+<div class="gk-pcard gk-pcard--placeholder">
+  <div class="gk-pcard-media">
+    <span class="gk-pcard-standin {% if dark == 1 %}gk-standin-dark{% else %}gk-standin-light{% endif %}">
+      {% if dark == 1 %}{{ 'gk-shield-inv.svg' | inline_asset_content }}{% else %}{{ 'gk-shield-2c.svg' | inline_asset_content }}{% endif %}
+    </span>
+  </div>
+  <div class="gk-pcard-body">
+    <div class="gk-pcard-eyebrow">Core Essentials</div>
+    <div class="gk-pcard-row">
+      <h3 class="gk-pcard-title">Club Crest Tee</h3>
+      <span class="gk-pcard-price">$42</span>
+    </div>
+  </div>
+</div>

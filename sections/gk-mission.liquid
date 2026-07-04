@@ -1,0 +1,51 @@
+{% comment %}
+  Gotham Knights homepage mission band — centered statement with a Pride rule
+  and an optional faint crest watermark bleeding off the right edge.
+  Background, text colour and the crest watermark are all editable.
+{% endcomment %}
+
+<section
+  class="gk-mission full-width"
+  style="--gk-mission-bg: {{ section.settings.background_color | default: '#0D1D41' }}; --gk-mission-text: {{ section.settings.heading_color | default: '#ffffff' }}; --gk-mission-body: {{ section.settings.body_color | default: '#C9D2E4' }};"
+>
+  {% if section.settings.show_crest %}
+    <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150" class="gk-mission-crest">
+  {% endif %}
+  <div class="gk-mission-inner">
+    {% if section.settings.show_rule %}<hr class="gk-pride-rule gk-mission-rule">{% endif %}
+    <h2 class="gk-mission-title gk-athletic">{{ section.settings.heading }}</h2>
+    {% if section.settings.body != blank %}<p class="gk-mission-body">{{ section.settings.body }}</p>{% endif %}
+  </div>
+</section>
+
+{% stylesheet %}
+  .gk-mission { position: relative; background: var(--gk-mission-bg, var(--navy-700)); padding: 60px 50px; overflow: hidden; }
+  .gk-mission-crest { position: absolute; top: 50%; right: -4%; transform: translateY(-50%); height: 150%; width: auto; opacity: .06; }
+  .gk-mission-inner { max-width: 820px; margin: 0 auto; text-align: center; position: relative; }
+  .gk-mission-rule { width: 64px; height: 4px; border: 0; border-radius: 99px; margin: 0 auto 22px; }
+  .gk-mission-title { color: var(--gk-mission-text, #fff); font-size: 2.5rem; line-height: 1; margin: 0; }
+  .gk-mission-body { color: var(--gk-mission-body, var(--navy-100)); font-size: 1.125rem; line-height: 1.6; margin: 20px auto 0; max-width: 60ch; }
+  @media (max-width: 860px) {
+    .gk-mission { padding: 40px 22px; }
+    .gk-mission-title { font-size: 1.6rem; line-height: 1.02; }
+    .gk-mission-body { font-size: .95rem; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Mission band",
+  "settings": [
+    { "type": "textarea", "id": "heading", "label": "Heading", "default": "Every order backs a club that made room for everyone on the pitch." },
+    { "type": "textarea", "id": "body", "label": "Body", "default": "Shopping The Gotham Storefront helps fund kit, pitch time, and travel for New York City's inclusive rugby club." },
+    { "type": "header", "content": "Style" },
+    { "type": "checkbox", "id": "show_rule", "label": "Show Pride rule", "default": true },
+    { "type": "checkbox", "id": "show_crest", "label": "Show crest watermark", "default": true },
+    { "type": "color", "id": "background_color", "label": "Background", "default": "#0D1D41" },
+    { "type": "color", "id": "heading_color", "label": "Heading colour", "default": "#ffffff" },
+    { "type": "color", "id": "body_color", "label": "Body colour", "default": "#C9D2E4" }
+  ],
+  "presets": [{ "name": "Mission band" }],
+  "disabled_on": { "groups": ["header", "footer"] }
+}
+{% endschema %}

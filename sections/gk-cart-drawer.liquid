@@ -1,0 +1,360 @@
+{% comment %}
+  Gotham Knights slide-out cart drawer. Reads the cart, updates line quantities
+  and removes items over the Shopify /cart/*.js AJAX routes, and intercepts
+  product add-to-cart forms across the storefront so adding opens the drawer.
+
+  No-JS safe: the contents are a real cart form posting to /cart, so quantity
+  updates and checkout work without JavaScript, and the header cart icon falls
+  back to linking to the cart page.
+
+  Rendered from the header section group (header-group.json). Re-rendered on
+  cart change via the Section Rendering API using this section's id.
+{% endcomment %}
+
+{% if section.settings.enable_drawer %}
+  <div class="gk-cart-drawer" id="gk-cart-drawer" data-gk-cart data-section-id="{{ section.id }}" hidden>
+    <div class="gk-cart-backdrop" data-gk-cart-close></div>
+    <aside class="gk-cart-panel" role="dialog" aria-modal="true" aria-label="Your cart" aria-labelledby="gk-cart-heading">
+      <header class="gk-cart-head">
+        <h2 class="gk-cart-heading" id="gk-cart-heading">
+          {{ section.settings.heading | default: 'Your cart' }}
+          <span class="gk-cart-headcount" data-gk-cart-count>{{ cart.item_count }}</span>
+        </h2>
+        <button type="button" class="gk-cart-close" data-gk-cart-close aria-label="Close cart">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+        </button>
+      </header>
+
+      <div class="gk-cart-render" data-gk-cart-render>
+        {% if cart.item_count == 0 %}
+          <div class="gk-cart-empty">
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+            <p class="gk-cart-empty-title">Your cart is empty</p>
+            <a class="gk-btn gk-btn-invert" href="{{ routes.all_products_collection_url }}" data-gk-cart-close>Shop all</a>
+          </div>
+        {% else %}
+          <form action="{{ routes.cart_url }}" method="post" id="gk-cart-form" class="gk-cart-form">
+            <ul class="gk-cart-lines" data-gk-cart-lines>
+              {% for item in cart.items %}
+                <li class="gk-cart-line" data-line="{{ forloop.index }}" data-key="{{ item.key }}">
+                  <a class="gk-cart-thumb" href="{{ item.url }}">
+                    {% if item.image %}
+                      {%- assign drawer_item_alt = item.title | escape -%}
+                      {{ item.image | image_url: width: 160 | image_tag: loading: 'eager', width: 80, height: 80, alt: drawer_item_alt }}
+                    {% else %}
+                      <span class="gk-cart-thumb-crest">{{ 'gk-shield-2c.svg' | inline_asset_content }}</span>
+                    {% endif %}
+                  </a>
+
+                  <div class="gk-cart-info">
+                    <a class="gk-cart-title" href="{{ item.url }}">{{ item.product.title }}</a>
+                    {% unless item.product.has_only_default_variant %}
+                      <div class="gk-cart-variant">{{ item.variant.title }}</div>
+                    {% endunless %}
+                    {% if item.selling_plan_allocation %}
+                      <div class="gk-cart-variant">{{ item.selling_plan_allocation.selling_plan.name }}</div>
+                    {% endif %}
+
+                    <div class="gk-cart-line-bottom">
+                      <div class="gk-qty gk-cart-qty">
+                        <button type="button" class="gk-qty-btn" data-gk-cart-minus data-line="{{ forloop.index }}" aria-label="Decrease quantity of {{ item.product.title | escape }}">&minus;</button>
+                        <input
+                          type="number"
+                          class="gk-cart-qty-input"
+                          name="updates[]"
+                          value="{{ item.quantity }}"
+                          min="0"
+                          inputmode="numeric"
+                          data-gk-cart-qty
+                          data-line="{{ forloop.index }}"
+                          aria-label="Quantity of {{ item.product.title | escape }}"
+                        >
+                        <button type="button" class="gk-qty-btn" data-gk-cart-plus data-line="{{ forloop.index }}" aria-label="Increase quantity of {{ item.product.title | escape }}">+</button>
+                      </div>
+                      <span class="gk-cart-price">
+                        {% if item.original_line_price > item.final_line_price %}
+                          <s class="gk-cart-was">{{ item.original_line_price | money }}</s>
+                        {% endif %}
+                        {{ item.final_line_price | money }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button type="button" class="gk-cart-remove" data-gk-cart-remove data-line="{{ forloop.index }}" aria-label="Remove {{ item.product.title | escape }}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </li>
+              {% endfor %}
+            </ul>
+
+            <div class="gk-cart-foot">
+              {% if section.settings.support_note != blank %}
+                <p class="gk-cart-support">{{ section.settings.support_note }}</p>
+              {% endif %}
+              <div class="gk-cart-subtotal">
+                <span>Subtotal</span>
+                <span class="gk-cart-subtotal-val">{{ cart.total_price | money }}</span>
+              </div>
+              <p class="gk-cart-taxnote">Taxes and shipping calculated at checkout.</p>
+              <noscript>
+                <button type="submit" name="update" class="gk-btn gk-btn-invert gk-cart-update">Update cart</button>
+              </noscript>
+              <button type="submit" name="checkout" class="gk-btn gk-btn-primary gk-cart-checkout">{{ 'cart.checkout' | t }}</button>
+              <a class="gk-cart-viewcart gk-tlink" href="{{ routes.cart_url }}">View full cart</a>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    (function () {
+      var drawer = document.querySelector('[data-gk-cart]');
+      if (!drawer) return;
+      var SECTION_ID = drawer.getAttribute('data-section-id');
+      var panel = drawer.querySelector('.gk-cart-panel');
+      var renderRegion = drawer.querySelector('[data-gk-cart-render]');
+      var lastFocus = null;
+      var busy = false;
+
+      /* ---------- open / close ---------- */
+      function focusables() {
+        return Array.prototype.slice.call(
+          panel.querySelectorAll('a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])')
+        ).filter(function (el) { return el.offsetParent !== null; });
+      }
+      function open() {
+        lastFocus = document.activeElement;
+        drawer.hidden = false;
+        requestAnimationFrame(function () { drawer.classList.add('is-open'); });
+        document.documentElement.classList.add('gk-no-scroll');
+        var closeBtn = drawer.querySelector('[data-gk-cart-close]');
+        if (closeBtn) closeBtn.focus();
+      }
+      function close() {
+        drawer.classList.remove('is-open');
+        document.documentElement.classList.remove('gk-no-scroll');
+        var onEnd = function () { drawer.hidden = true; panel.removeEventListener('transitionend', onEnd); };
+        panel.addEventListener('transitionend', onEnd);
+        setTimeout(function () { if (!drawer.classList.contains('is-open')) drawer.hidden = true; }, 350);
+        if (lastFocus && lastFocus.focus) lastFocus.focus();
+      }
+
+      /* Delegate open triggers (header cart icon, etc.) across the page. */
+      document.addEventListener('click', function (e) {
+        var t = e.target.closest('[data-gk-cart-open]');
+        if (t) { e.preventDefault(); open(); }
+      });
+      /* Delegate close triggers, including re-rendered ones. */
+      drawer.addEventListener('click', function (e) {
+        if (e.target.closest('[data-gk-cart-close]')) { e.preventDefault(); close(); }
+      });
+      drawer.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { close(); return; }
+        if (e.key === 'Tab') {
+          var f = focusables();
+          if (!f.length) return;
+          var first = f[0], last = f[f.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      });
+
+      /* ---------- rendering ---------- */
+      function updateCounts(count) {
+        document.querySelectorAll('[data-gk-cart-count]').forEach(function (el) {
+          el.textContent = count;
+          el.classList.toggle('is-empty', count === 0);
+        });
+      }
+      function swapRender(html) {
+        try {
+          var doc = new DOMParser().parseFromString(html, 'text/html');
+          var next = doc.querySelector('[data-gk-cart-render]');
+          if (next && renderRegion) renderRegion.innerHTML = next.innerHTML;
+        } catch (e) {}
+      }
+      function refresh(openAfter) {
+        return Promise.all([
+          fetch('/cart.js', { headers: { 'Accept': 'application/json' } }).then(function (r) { return r.json(); }),
+          fetch('/?section_id=' + encodeURIComponent(SECTION_ID), { headers: { 'Accept': 'text/html' } }).then(function (r) { return r.text(); })
+        ]).then(function (res) {
+          updateCounts(res[0].item_count);
+          swapRender(res[1]);
+          if (openAfter) open();
+        });
+      }
+
+      /* ---------- mutations ---------- */
+      function setBusy(state) {
+        busy = state;
+        drawer.classList.toggle('is-busy', state);
+      }
+      function changeLine(line, qty) {
+        if (busy) return;
+        setBusy(true);
+        fetch('/cart/change.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ line: line, quantity: qty })
+        })
+          .then(function () { return refresh(false); })
+          .catch(function () {})
+          .then(function () { setBusy(false); });
+      }
+
+      /* Delegated line controls (survive re-render). */
+      drawer.addEventListener('click', function (e) {
+        var minus = e.target.closest('[data-gk-cart-minus]');
+        var plus = e.target.closest('[data-gk-cart-plus]');
+        var remove = e.target.closest('[data-gk-cart-remove]');
+        if (minus) {
+          var li = minus.closest('.gk-cart-line');
+          var input = li.querySelector('[data-gk-cart-qty]');
+          var q = Math.max(0, (parseInt(input.value, 10) || 0) - 1);
+          changeLine(parseInt(minus.dataset.line, 10), q);
+        } else if (plus) {
+          var li2 = plus.closest('.gk-cart-line');
+          var input2 = li2.querySelector('[data-gk-cart-qty]');
+          var q2 = (parseInt(input2.value, 10) || 0) + 1;
+          changeLine(parseInt(plus.dataset.line, 10), q2);
+        } else if (remove) {
+          changeLine(parseInt(remove.dataset.line, 10), 0);
+        }
+      });
+      drawer.addEventListener('change', function (e) {
+        var input = e.target.closest('[data-gk-cart-qty]');
+        if (!input) return;
+        var q = Math.max(0, parseInt(input.value, 10) || 0);
+        changeLine(parseInt(input.dataset.line, 10), q);
+      });
+
+      /* ---------- add-to-cart interception ---------- */
+      document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form.matches || !form.matches('form[action*="/cart/add"]')) return;
+        if (busy) { e.preventDefault(); return; }
+        e.preventDefault();
+        setBusy(true);
+        var data = new FormData(form);
+        var submitBtn = form.querySelector('[type="submit"]');
+        if (submitBtn && submitBtn.name) data.append(submitBtn.name, submitBtn.value || '');
+        fetch('/cart/add.js', { method: 'POST', headers: { 'Accept': 'application/json' }, body: data })
+          .then(function (r) {
+            if (!r.ok) { return r.json().then(function (err) { throw err; }); }
+            return r.json();
+          })
+          .then(function () { return refresh(true); })
+          .catch(function () {
+            /* Fall back to a normal navigation if the AJAX add fails. */
+            form.submit();
+          })
+          .then(function () { setBusy(false); });
+      });
+    })();
+  </script>
+{% endif %}
+
+{% stylesheet %}
+  .gk-cart-drawer { position: fixed; inset: 0; z-index: 90; font-family: var(--font-body); }
+  .gk-cart-drawer[hidden] { display: none; }
+  .gk-cart-backdrop {
+    position: absolute; inset: 0; background: rgba(7,17,42,.55);
+    opacity: 0; transition: opacity var(--dur-base) var(--ease-standard);
+  }
+  .gk-cart-drawer.is-open .gk-cart-backdrop { opacity: 1; }
+  .gk-cart-panel {
+    position: absolute; top: 0; right: 0; bottom: 0; width: min(92vw, 420px);
+    display: flex; flex-direction: column; background: var(--paper);
+    border-left: 2px solid var(--gold-500);
+    transform: translateX(100%);
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+  .gk-cart-drawer.is-open .gk-cart-panel { transform: translateX(0); }
+  .gk-cart-drawer.is-busy .gk-cart-panel { opacity: .6; pointer-events: none; }
+
+  .gk-cart-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px; border-bottom: 1px solid var(--border); background: var(--navy-700);
+  }
+  .gk-cart-heading { margin: 0; display: flex; align-items: center; gap: 9px; font: 800 17px var(--font-heading); text-transform: uppercase; letter-spacing: .02em; color: #fff; }
+  .gk-cart-headcount { display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: var(--gold-500); color: var(--navy-700); font: 800 12px var(--font-mono); }
+  .gk-cart-headcount.is-empty { opacity: .5; }
+  .gk-cart-close { display: grid; place-items: center; width: 40px; height: 40px; background: transparent; border: 0; color: #fff; cursor: pointer; border-radius: 8px; }
+  .gk-cart-close:hover { background: rgba(255,255,255,.14); }
+
+  .gk-cart-render { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .gk-cart-form { display: flex; flex-direction: column; flex: 1; min-height: 0; margin: 0; }
+
+  .gk-cart-lines { list-style: none; margin: 0; padding: 8px 20px; flex: 1; overflow-y: auto; }
+  .gk-cart-line { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .gk-cart-thumb { display: block; width: 72px; height: 72px; border-radius: var(--radius-md); overflow: hidden; background: var(--paper-2); flex: none; }
+  .gk-cart-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .gk-cart-thumb-crest { display: grid; place-items: center; width: 100%; height: 100%; }
+  .gk-cart-thumb-crest svg { width: 54%; }
+  .gk-cart-info { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .gk-cart-title { font: 700 14px var(--font-heading); color: var(--navy-700); text-decoration: none; letter-spacing: -.01em; }
+  .gk-cart-title:hover { color: var(--navy-500); }
+  .gk-cart-variant { font: 500 12px var(--font-body); color: var(--ink-500); }
+  .gk-cart-line-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
+  .gk-cart-qty { height: 38px; }
+  .gk-cart-qty .gk-qty-btn { width: 34px; height: 36px; font-size: 17px; }
+  .gk-cart-qty-input { width: 34px; text-align: center; border: 0; background: #fff; font: 600 14px var(--font-mono); color: var(--navy-700); -moz-appearance: textfield; }
+  .gk-cart-qty-input::-webkit-outer-spin-button, .gk-cart-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .gk-cart-price { font: 600 14px var(--font-mono); color: var(--navy-700); white-space: nowrap; }
+  .gk-cart-was { color: var(--ink-400); margin-right: 6px; }
+  .gk-cart-remove { align-self: start; display: grid; place-items: center; width: 30px; height: 30px; border: 0; background: transparent; color: var(--ink-400); cursor: pointer; border-radius: 6px; }
+  .gk-cart-remove:hover { color: var(--navy-700); background: var(--paper-2); }
+
+  .gk-cart-foot { padding: 18px 20px 22px; border-top: 1px solid var(--border); background: var(--paper); }
+  .gk-cart-support { margin: 0 0 12px; font: 500 12px/1.5 var(--font-body); color: var(--ink-500); }
+  .gk-cart-subtotal { display: flex; align-items: baseline; justify-content: space-between; font: 800 15px var(--font-heading); text-transform: uppercase; letter-spacing: .04em; color: var(--navy-700); }
+  .gk-cart-subtotal-val { font: 600 17px var(--font-mono); }
+  .gk-cart-taxnote { margin: 4px 0 14px; font: 500 11.5px var(--font-body); color: var(--ink-500); }
+  .gk-cart-checkout { width: 100%; justify-content: center; }
+  .gk-cart-update { width: 100%; justify-content: center; margin-bottom: 10px; }
+  .gk-cart-viewcart { display: block; text-align: center; margin-top: 12px; font-size: 13px; }
+
+  .gk-cart-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 20px; color: var(--ink-400); }
+  .gk-cart-empty-title { margin: 0; font: 700 16px var(--font-heading); color: var(--navy-700); }
+
+  html.gk-no-scroll { overflow: hidden; }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Cart drawer",
+  "tag": "aside",
+  "class": "gk-cart-drawer-section",
+  "enabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enable_drawer",
+      "label": "Enable cart drawer",
+      "info": "When off, the cart icon links to the cart page instead of opening a drawer.",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Your cart"
+    },
+    {
+      "type": "textarea",
+      "id": "support_note",
+      "label": "Support note",
+      "default": "Your purchase supports Gotham Rugby — NYC's inclusive rugby club. (Not a tax-deductible donation.)"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Cart drawer"
+    }
+  ]
+}
+{% endschema %}

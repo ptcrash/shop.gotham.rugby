@@ -1,0 +1,347 @@
+{% comment %}
+  Gotham Knights announcement bar — a standalone, editor-addable top-of-site
+  banner. Repeatable "message" blocks (richtext + optional link + optional
+  per-message color), section-level colors, optional auto-rotate, and an
+  optional dismiss button (remembered per visitor via localStorage).
+
+  Lives in the header section group (see header-group.json). No-JS safe:
+  the first message always renders; rotation/dismiss are progressive.
+{% endcomment %}
+
+{% liquid
+  assign msg_count = section.blocks.size
+  assign multiple = false
+  if msg_count > 1
+    assign multiple = true
+  endif
+  assign rotate = false
+  if section.settings.auto_rotate and multiple
+    assign rotate = true
+  endif
+  assign show_arrows = false
+  if section.settings.show_arrows and multiple
+    assign show_arrows = true
+  endif
+%}
+
+{% if msg_count > 0 %}
+  <div
+    class="gk-announce-bar full-width{% if rotate %} gk-announce-bar--rotate{% endif %}"
+    data-gk-announce
+    {% if rotate %}data-rotate="{{ section.settings.rotate_speed | times: 1000 }}"{% endif %}
+    {% if section.settings.allow_dismiss %}data-dismissible data-storage-key="gk-announce-{{ section.id }}"{% endif %}
+    style="--gkab-bg:{{ section.settings.background }};--gkab-fg:{{ section.settings.text_color }};--gkab-link:{{ section.settings.link_color }};"
+    role="region"
+    aria-label="Announcements"
+  >
+    <div class="gk-announce-inner">
+      {% if show_arrows %}
+        <button type="button" class="gk-announce-nav gk-announce-prev" data-gk-announce-prev aria-label="Previous announcement">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+        </button>
+      {% endif %}
+
+      <div class="gk-announce-track" aria-live="polite" data-gk-announce-track>
+        {% for block in section.blocks %}
+          <div
+            class="gk-announce-slide{% if forloop.first %} is-active{% endif %}"
+            data-gk-announce-slide
+            data-index="{{ forloop.index0 }}"
+            {% unless forloop.first %}aria-hidden="true"{% endunless %}
+            {% if block.settings.text_color != blank %}style="color:{{ block.settings.text_color }};"{% endif %}
+            {{ block.shopify_attributes }}
+          >
+            <span class="gk-announce-msg">{{ block.settings.message }}</span>
+            {% if block.settings.url != blank %}
+              <a class="gk-announce-stretch" href="{{ block.settings.url }}" aria-label="{{ block.settings.message | strip_html | strip_newlines | strip | escape }}"></a>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if show_arrows %}
+        <button type="button" class="gk-announce-nav gk-announce-next" data-gk-announce-next aria-label="Next announcement">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        </button>
+      {% endif %}
+
+      {% if section.settings.allow_dismiss %}
+        <button type="button" class="gk-announce-close" data-gk-announce-close aria-label="Dismiss announcement">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if section.settings.allow_dismiss %}
+    <script>
+      /* Hide before paint if this visitor already dismissed it (no flash). */
+      (function () {
+        try {
+          var key = 'gk-announce-{{ section.id }}';
+          if (localStorage.getItem(key) === '1') {
+            var els = document.querySelectorAll('[data-storage-key="' + key + '"]');
+            Array.prototype.forEach.call(els, function (el) { el.style.display = 'none'; });
+          }
+        } catch (e) {}
+      })();
+    </script>
+  {% endif %}
+
+  <script>
+    (function () {
+      var bar = document.currentScript.previousElementSibling;
+      /* previousElementSibling may be the dismiss script tag; walk back to the bar. */
+      while (bar && !(bar.hasAttribute && bar.hasAttribute('data-gk-announce'))) {
+        bar = bar.previousElementSibling;
+      }
+      if (!bar) return;
+
+      var slides = bar.querySelectorAll('[data-gk-announce-slide]');
+      var index = 0;
+      var timer = null;
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function show(i) {
+        if (!slides.length) return;
+        index = (i + slides.length) % slides.length;
+        Array.prototype.forEach.call(slides, function (slide, s) {
+          var on = s === index;
+          slide.classList.toggle('is-active', on);
+          if (on) { slide.removeAttribute('aria-hidden'); }
+          else { slide.setAttribute('aria-hidden', 'true'); }
+        });
+      }
+      function next() { show(index + 1); }
+      function prev() { show(index - 1); }
+
+      var prevBtn = bar.querySelector('[data-gk-announce-prev]');
+      var nextBtn = bar.querySelector('[data-gk-announce-next]');
+      if (prevBtn) prevBtn.addEventListener('click', function () { prev(); restart(); });
+      if (nextBtn) nextBtn.addEventListener('click', function () { next(); restart(); });
+
+      var rotateMs = parseInt(bar.getAttribute('data-rotate'), 10);
+      function start() {
+        if (!rotateMs || reduce || !(slides.length > 1)) return;
+        timer = setInterval(next, rotateMs);
+      }
+      function stop() { if (timer) { clearInterval(timer); timer = null; } }
+      function restart() { stop(); start(); }
+
+      if (rotateMs) {
+        bar.addEventListener('mouseenter', stop);
+        bar.addEventListener('mouseleave', start);
+        bar.addEventListener('focusin', stop);
+        bar.addEventListener('focusout', start);
+        start();
+      }
+
+      var closeBtn = bar.querySelector('[data-gk-announce-close]');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function () {
+          stop();
+          bar.style.display = 'none';
+          try {
+            var key = bar.getAttribute('data-storage-key');
+            if (key) localStorage.setItem(key, '1');
+          } catch (e) {}
+        });
+      }
+    })();
+  </script>
+{% endif %}
+
+{% stylesheet %}
+  .gk-announce-bar {
+    background: var(--gkab-bg, var(--navy-800));
+    color: var(--gkab-fg, var(--gold-400));
+    font-family: var(--font-body);
+  }
+  .gk-announce-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    max-width: var(--gk-content-width);
+    margin: 0 auto;
+    padding: 8px 44px;
+    min-height: 34px;
+    position: relative;
+  }
+  .gk-announce-track {
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 18px;
+  }
+  .gk-announce-slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--dur-base, 200ms) var(--ease-standard);
+  }
+  .gk-announce-slide.is-active {
+    position: relative;
+    opacity: 1;
+    visibility: visible;
+  }
+  .gk-announce-msg,
+  .gk-announce-msg * {
+    display: inline;
+    margin: 0;
+    font-weight: 700;
+    font-size: 11.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    line-height: 1.4;
+  }
+  .gk-announce-msg a {
+    color: var(--gkab-link, var(--gold-500));
+    text-underline-offset: 2px;
+  }
+  .gk-announce-stretch {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+  .gk-announce-slide:has(.gk-announce-stretch):hover .gk-announce-msg { text-decoration: underline; }
+  .gk-announce-nav,
+  .gk-announce-close {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm, 6px);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    opacity: .75;
+    transition: opacity var(--dur-fast) var(--ease-standard), background var(--dur-fast) var(--ease-standard);
+  }
+  .gk-announce-nav:hover,
+  .gk-announce-close:hover { opacity: 1; background: rgba(255,255,255,.14); }
+  .gk-announce-close {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  @media (max-width: 860px) {
+    .gk-announce-inner { padding: 8px 40px; }
+    .gk-announce-msg,
+    .gk-announce-msg * { font-size: 10.5px; letter-spacing: .08em; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Announcement bar",
+  "tag": "aside",
+  "class": "gk-announce-section",
+  "enabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Background",
+      "default": "#0a1736"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#ffd45c"
+    },
+    {
+      "type": "color",
+      "id": "link_color",
+      "label": "Inline link",
+      "default": "#fec526"
+    },
+    {
+      "type": "header",
+      "content": "Behavior"
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_rotate",
+      "label": "Auto-rotate messages",
+      "info": "Only applies when there is more than one message.",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "rotate_speed",
+      "label": "Rotate every",
+      "min": 3,
+      "max": 12,
+      "step": 1,
+      "unit": "s",
+      "default": 5
+    },
+    {
+      "type": "checkbox",
+      "id": "show_arrows",
+      "label": "Show previous / next arrows",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "allow_dismiss",
+      "label": "Allow visitors to dismiss",
+      "default": false
+    }
+  ],
+  "blocks": [
+    {
+      "type": "message",
+      "name": "Message",
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "message",
+          "label": "Message",
+          "default": "<p>Free US shipping over $75 — every order backs the club</p>"
+        },
+        {
+          "type": "url",
+          "id": "url",
+          "label": "Link (optional)"
+        },
+        {
+          "type": "color",
+          "id": "text_color",
+          "label": "Text color override (optional)"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 6,
+  "presets": [
+    {
+      "name": "Announcement bar",
+      "blocks": [
+        { "type": "message", "settings": { "message": "<p>New drop — the 25 Years capsule</p>" } },
+        { "type": "message", "settings": { "message": "<p>Free US shipping over $75</p>" } },
+        { "type": "message", "settings": { "message": "<p>Every order backs the club</p>" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,17 +1,81 @@
 {% comment %}
-  This section is used in the page template to render store pages like About us
-  or Contact us.
-
+  Gotham Knights generic page — navy title band with breadcrumb, then the page's
+  rich-text content in a readable measure. Supports app blocks below the content.
   https://shopify.dev/docs/storefronts/themes/architecture/templates/page
 {% endcomment %}
 
-<h1>{{ page.title }}</h1>
+<div class="gk-page">
+  <div class="gk-page-hero full-width">
+    <img src="{{ 'gk-shield-inv.svg' | asset_url }}" alt="" aria-hidden="true" width="150" height="150" class="gk-page-crest">
+    <div class="gk-band-inner gk-page-hero-inner">
+      {% if section.settings.show_breadcrumb %}
+        <nav class="gk-breadcrumb" aria-label="Breadcrumb">
+          <a href="{{ routes.root_url }}">Home</a> /
+          <span>{{ page.title }}</span>
+        </nav>
+      {% endif %}
+      {% if section.settings.eyebrow != blank %}<div class="gk-eyebrow-gold gk-eyebrow-onnavy">{{ section.settings.eyebrow }}</div>{% endif %}
+      <h1 class="gk-page-title gk-athletic">{{ page.title }}</h1>
+    </div>
+  </div>
 
-{{ page.content }}
+  <div class="gk-band gk-band-paper full-width">
+    <div class="gk-band-inner">
+      <div class="gk-page-body{% if section.settings.width == 'narrow' %} is-narrow{% endif %}">
+        {% if page.content != blank %}
+          <div class="gk-page-rte rte">{{ page.content }}</div>
+        {% else %}
+          <p class="gk-page-empty">This page has no content yet.</p>
+        {% endif %}
+
+        {% for block in section.blocks %}
+          {% case block.type %}
+            {% when '@app' %}
+              <div class="gk-page-appblock" {{ block.shopify_attributes }}>{% render block %}</div>
+          {% endcase %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% stylesheet %}
+  .gk-page-hero { position: relative; background: var(--navy-700); overflow: hidden; padding: 44px 50px 48px; }
+  .gk-page-crest { position: absolute; top: 50%; right: -3%; transform: translateY(-50%); height: 180%; width: auto; opacity: .06; }
+  .gk-page-hero-inner { position: relative; }
+  .gk-page-title { color: #fff; font-size: 3rem; line-height: .95; margin: 0; }
+
+  .gk-page-body { max-width: 900px; }
+  .gk-page-body.is-narrow { max-width: 680px; margin: 0 auto; }
+  .gk-page-rte { font: 400 17px/1.7 var(--font-body); color: var(--ink-900); }
+  .gk-page-rte h2 { font: 800 1.7rem/1.15 var(--font-heading); color: var(--navy-700); margin: 1.8em 0 .5em; }
+  .gk-page-rte h3 { font: 800 1.3rem/1.2 var(--font-heading); color: var(--navy-700); margin: 1.5em 0 .5em; }
+  .gk-page-rte p { margin: 0 0 1.2em; }
+  .gk-page-rte a { color: var(--navy-700); text-decoration: underline; text-decoration-color: var(--gold-500); text-underline-offset: 2px; }
+  .gk-page-rte img { max-width: 100%; height: auto; border-radius: 10px; }
+  .gk-page-rte ul, .gk-page-rte ol { margin: 0 0 1.2em; padding-left: 1.4em; }
+  .gk-page-rte blockquote { border-left: 4px solid var(--gold-500); margin: 1.5em 0; padding: 4px 0 4px 22px; font-style: italic; color: var(--ink-700); }
+  .gk-page-empty { color: var(--ink-500); font-size: 1rem; }
+  .gk-page-appblock { margin-top: 28px; }
+
+  @media (max-width: 860px) {
+    .gk-page-hero { padding: 28px 18px 32px; }
+    .gk-page-title { font-size: 2.1rem; }
+    .gk-page-rte { font-size: 16px; }
+  }
+{% endstylesheet %}
 
 {% schema %}
 {
-  "name": "t:general.page",
-  "settings": []
+  "name": "Page",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow" },
+    { "type": "checkbox", "id": "show_breadcrumb", "label": "Show breadcrumb", "default": true },
+    { "type": "select", "id": "width", "label": "Content width", "default": "narrow", "options": [
+      { "value": "narrow", "label": "Narrow (reading)" },
+      { "value": "wide", "label": "Wide" }
+    ] }
+  ],
+  "blocks": [{ "type": "@app" }]
 }
 {% endschema %}
