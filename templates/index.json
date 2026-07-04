@@ -12,14 +12,15 @@
     "hero": {
       "type": "gk-hero",
       "settings": {
-        "eyebrow": "New drop · Core Essentials",
-        "heading": "Built for the pitch.",
-        "heading_accent": "Made for the city.",
-        "subheading": "The Club Crest Tee — heavyweight cotton, an embroidered dragon, built to outlast the season.",
+        "product": "gotham-hawaiian-shirt",
+        "eyebrow": "Signature drop · Summer",
+        "heading": "Bring the heat.",
+        "heading_accent": "Own the summer.",
+        "subheading": "The Gotham Hawaiian Shirt — featherlight, moisture-wicking, and UPF50+. Loud in all the right ways.",
         "badge": "New Drop",
-        "primary_label": "Shop the drop",
+        "primary_label": "Shop the shirt",
         "secondary_label": "Explore collection",
-        "meta": "$42 · unisex · S–3XL"
+        "meta": ""
       }
     },
     "collection_list": {
