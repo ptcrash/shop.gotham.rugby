@@ -191,17 +191,20 @@
         busy = state;
         drawer.classList.toggle('is-busy', state);
       }
-      function changeLine(line, qty) {
+      function changeLine(line, qty, lineEl) {
         if (busy) return;
-        setBusy(true);
+        busy = true;
+        /* Dim only the affected line while it updates — not the whole panel.
+           (No line element, e.g. a programmatic change, falls back to the panel state.) */
+        if (lineEl) { lineEl.classList.add('is-updating'); } else { setBusy(true); }
         fetch('/cart/change.js', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify({ line: line, quantity: qty })
         })
           .then(function () { return refresh(false); })
-          .catch(function () {})
-          .then(function () { setBusy(false); });
+          .catch(function () { if (lineEl) lineEl.classList.remove('is-updating'); })
+          .then(function () { busy = false; if (!lineEl) setBusy(false); });
       }
 
       /* Delegated line controls (survive re-render). */
@@ -213,21 +216,21 @@
           var li = minus.closest('.gk-cart-line');
           var input = li.querySelector('[data-gk-cart-qty]');
           var q = Math.max(0, (parseInt(input.value, 10) || 0) - 1);
-          changeLine(parseInt(minus.dataset.line, 10), q);
+          changeLine(parseInt(minus.dataset.line, 10), q, li);
         } else if (plus) {
           var li2 = plus.closest('.gk-cart-line');
           var input2 = li2.querySelector('[data-gk-cart-qty]');
           var q2 = (parseInt(input2.value, 10) || 0) + 1;
-          changeLine(parseInt(plus.dataset.line, 10), q2);
+          changeLine(parseInt(plus.dataset.line, 10), q2, li2);
         } else if (remove) {
-          changeLine(parseInt(remove.dataset.line, 10), 0);
+          changeLine(parseInt(remove.dataset.line, 10), 0, remove.closest('.gk-cart-line'));
         }
       });
       drawer.addEventListener('change', function (e) {
         var input = e.target.closest('[data-gk-cart-qty]');
         if (!input) return;
         var q = Math.max(0, parseInt(input.value, 10) || 0);
-        changeLine(parseInt(input.dataset.line, 10), q);
+        changeLine(parseInt(input.dataset.line, 10), q, input.closest('.gk-cart-line'));
       });
 
       /* ---------- add-to-cart interception ---------- */
@@ -273,6 +276,8 @@
   }
   .gk-cart-drawer.is-open .gk-cart-panel { transform: translateX(0); }
   .gk-cart-drawer.is-busy .gk-cart-panel { opacity: .6; pointer-events: none; }
+  /* A single line being updated/removed dims on its own — the rest stays live. */
+  .gk-cart-line.is-updating { opacity: .4; pointer-events: none; transition: opacity var(--dur-fast) var(--ease-standard); }
 
   .gk-cart-head {
     display: flex; align-items: center; justify-content: space-between;
