@@ -26,10 +26,10 @@
     "collection_list": {
       "type": "gk-collection-list",
       "blocks": {
-        "t1": { "type": "tile", "settings": { "title": "Core Essentials", "count": "12 pieces", "style": "dark" } },
-        "t2": { "type": "tile", "settings": { "title": "Fan & Family", "count": "8 pieces", "style": "light" } },
-        "t3": { "type": "tile", "settings": { "title": "Accessories", "count": "9 pieces", "style": "stripes" } },
-        "t4": { "type": "tile", "settings": { "title": "Vintage · 25th", "count": "6 pieces", "style": "anniversary" } }
+        "t1": { "type": "tile", "settings": { "collection": "core-essentials", "title": "Core Essentials", "style": "dark" } },
+        "t2": { "type": "tile", "settings": { "collection": "fan-family", "title": "Fan & Family", "style": "light" } },
+        "t3": { "type": "tile", "settings": { "collection": "accessories", "title": "Accessories", "style": "stripes" } },
+        "t4": { "type": "tile", "settings": { "collection": "vintage", "title": "Vintage · 25th", "style": "anniversary" } }
       },
       "block_order": ["t1", "t2", "t3", "t4"],
       "settings": { "eyebrow": "Shop by collection", "heading": "Find your kit", "link_label": "View all" }
