@@ -16,36 +16,78 @@
       "blocks": {
         "instagram": {
           "type": "social",
-          "settings": { "platform": "instagram", "url": "" }
+          "settings": {
+            "platform": "instagram",
+            "url": "https://www.instagram.com/gothamrugby"
+          }
         },
         "tiktok": {
           "type": "social",
-          "settings": { "platform": "tiktok", "url": "" }
+          "settings": {
+            "platform": "tiktok",
+            "url": ""
+          }
         },
         "shop": {
           "type": "link_column",
-          "settings": { "heading": "Shop", "menu": "footer" }
+          "settings": {
+            "heading": "Shop",
+            "menu": "footer"
+          }
         },
         "club": {
           "type": "link_column",
-          "settings": { "heading": "Club", "menu": "" }
+          "settings": {
+            "heading": "Club",
+            "menu": ""
+          }
         },
         "help": {
           "type": "link_column",
-          "settings": { "heading": "Help", "menu": "" }
+          "settings": {
+            "heading": "Help",
+            "menu": ""
+          }
         }
       },
-      "block_order": ["instagram", "tiktok", "shop", "club", "help"],
+      "block_order": [
+        "instagram",
+        "tiktok",
+        "shop",
+        "club",
+        "help"
+      ],
       "settings": {
-        "show_payment_icons": true,
+        "footer_menu": "",
+        "logo_width": 270,
+        "wordmark": "Gotham Knights",
+        "blurb": "New York City's inclusive rugby club. Built for the pitch, made for the city — every order backs the squad.",
+        "email": "",
+        "show_country_selector": true,
+        "show_language_selector": true,
         "copyright_tag": "",
-        "footer_menu": "footer-nav"
+        "support_note": "Every purchase supports the club. Not a tax-deductible donation.",
+        "show_payment_icons": true
       }
     },
     "gk-popup": {
       "type": "gk-popup",
       "settings": {
-        "enable": false
+        "enable": false,
+        "content_type": "newsletter",
+        "eyebrow": "Members get first dibs",
+        "heading": "Join the drop list",
+        "body": "New kit, restocks, and the 25 Years capsule — straight to your inbox. Every order backs NYC's inclusive rugby club.",
+        "show_crest": true,
+        "fine_print": "No spam, just the good stuff. Unsubscribe anytime.",
+        "placeholder": "you@email.com",
+        "success_text": "You're on the list — check your inbox.",
+        "button_label": "Sign up",
+        "button_url": "",
+        "trigger": "delay",
+        "delay_seconds": 5,
+        "scroll_percent": 40,
+        "frequency": "session"
       }
     }
   },
@@ -54,4 +96,3 @@
     "gk-popup"
   ]
 }
-
