@@ -373,6 +373,15 @@
     .gk-brand-tag { display: none; }
     .gk-brand { margin-right: auto; margin-left: 4px; }
   }
+  @media (max-width: 600px) {
+    /* The wordmark is a fixed ~188px and `.gk-brand` can't shrink (flex:none),
+       so on phones it pushes the action icons past the viewport edge and opens
+       a horizontal scroll. Drop to the crest-only lockup here — the shield
+       still reads as the logo, and search/account/cart all stay in the bar. */
+    .gk-brand-lockup { display: none; }
+    .gk-brand svg { height: 32px; }
+    .gk-brand-logo { max-width: 132px; }
+  }
   @media (min-width: 861px) {
     .gk-mnav { display: none !important; }
   }
