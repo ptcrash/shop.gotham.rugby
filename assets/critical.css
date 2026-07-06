@@ -16,9 +16,12 @@ body {
 /* Guard against accidental horizontal scroll on mobile: if any element breaks
    a few pixels past the viewport, it gets clipped rather than opening a
    horizontal scrollbar (whose gutter also shows as a 1px strip at the bottom).
-   Uses `clip` — not `hidden` — so it doesn't create a scroll container and
-   therefore keeps `position: sticky` (e.g. the PDP add-to-cart bar) working. */
-html {
+   Applied to `body` as well as `html` because root-element clip is not reliably
+   honoured as a scroll-suppressor in Chrome. Uses `clip` — not `hidden` — so it
+   doesn't create a scroll container and keeps `position: sticky` (e.g. the PDP
+   add-to-cart bar) working. */
+html,
+body {
   overflow-x: clip;
 }
 
