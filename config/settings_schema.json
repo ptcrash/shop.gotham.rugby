@@ -1,11 +1,11 @@
 [
   {
     "name": "theme_info",
-    "theme_name": "Skeleton",
-    "theme_version": "0.1.0",
-    "theme_author": "Shopify",
-    "theme_documentation_url": "https://help.shopify.com/manual/online-store/themes",
-    "theme_support_url": "https://support.shopify.com/"
+    "theme_name": "Gotham",
+    "theme_version": "1.0.0",
+    "theme_author": "Gotham Knights RFC",
+    "theme_documentation_url": "https://github.com/ptcrash/shop.gotham.rugby#readme",
+    "theme_support_url": "https://github.com/ptcrash/shop.gotham.rugby/issues"
   },
   {
     "name": "t:general.typography",
