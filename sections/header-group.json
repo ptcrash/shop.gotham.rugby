@@ -13,40 +13,32 @@
   "sections": {
     "announcement": {
       "type": "announcement-bar",
-      "blocks": {
-        "message-1": {
-          "type": "message",
-          "settings": {
-            "message": "<p>New drop — the 25 Years capsule</p>"
-          }
-        },
-        "message-2": {
-          "type": "message",
-          "settings": {
-            "message": "<p>Free US shipping over $75</p>"
-          }
-        },
-        "message-3": {
-          "type": "message",
-          "settings": {
-            "message": "<p>Every order backs the club</p>"
-          }
-        }
-      },
-      "block_order": ["message-1", "message-2", "message-3"],
       "settings": {
+        "background": "#0a1736",
+        "text_color": "#ffd45c",
+        "link_color": "#fec526",
         "auto_rotate": true,
-        "rotate_speed": 5
+        "rotate_speed": 5,
+        "show_arrows": false,
+        "allow_dismiss": false
       }
     },
     "header": {
       "type": "header",
-      "settings": {}
+      "settings": {
+        "logo_width": 170,
+        "wordmark": "Gotham Knights",
+        "tagline": "The Storefront",
+        "menu": "main-menu",
+        "enable_cart_drawer": true
+      }
     },
     "cart-drawer": {
       "type": "gk-cart-drawer",
       "settings": {
-        "enable_drawer": true
+        "enable_drawer": true,
+        "heading": "Your cart",
+        "support_note": "Your purchase supports Gotham Rugby — NYC's inclusive rugby club. (Not a tax-deductible donation.)"
       }
     }
   },
