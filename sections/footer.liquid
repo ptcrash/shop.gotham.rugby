@@ -68,18 +68,36 @@
     </div>
 
     <div class="gk-footer-cols">
-      {% for block in section.blocks %}
-        {% if block.type == 'link_column' %}
-          <div class="gk-footer-col" {{ block.shopify_attributes }}>
-            {% if block.settings.heading != blank %}<div class="gk-footer-col-head">{{ block.settings.heading }}</div>{% endif %}
-            <div class="gk-footer-col-links">
-              {% for link in block.settings.menu.links %}
-                <a class="gk-flink" href="{{ link.url }}">{{ link.title }}</a>
-              {% endfor %}
-            </div>
+      {%- assign footer_menu = section.settings.footer_menu -%}
+      {% if footer_menu != blank and footer_menu.links.size > 0 %}
+        {% comment %} Single nested menu: each top-level link is a column (heading = the link; its children = the links). {% endcomment %}
+        {% for parent in footer_menu.links %}
+          <div class="gk-footer-col">
+            <a class="gk-footer-col-head gk-footer-col-head-link" href="{{ parent.url }}">{{ parent.title }}</a>
+            {% if parent.links.size > 0 %}
+              <div class="gk-footer-col-links">
+                {% for child in parent.links %}
+                  <a class="gk-flink{% if child.active %} is-active{% endif %}" href="{{ child.url }}">{{ child.title }}</a>
+                {% endfor %}
+              </div>
+            {% endif %}
           </div>
-        {% endif %}
-      {% endfor %}
+        {% endfor %}
+      {% else %}
+        {% comment %} Fallback: per-column blocks (used until a Footer menu is selected). {% endcomment %}
+        {% for block in section.blocks %}
+          {% if block.type == 'link_column' %}
+            <div class="gk-footer-col" {{ block.shopify_attributes }}>
+              {% if block.settings.heading != blank %}<div class="gk-footer-col-head">{{ block.settings.heading }}</div>{% endif %}
+              <div class="gk-footer-col-links">
+                {% for link in block.settings.menu.links %}
+                  <a class="gk-flink" href="{{ link.url }}">{{ link.title }}</a>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
     </div>
   </div>
 
@@ -167,6 +185,8 @@
     font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: .14em;
     color: var(--gold-400); margin-bottom: 14px;
   }
+  a.gk-footer-col-head-link { display: block; text-decoration: none; transition: color var(--dur-fast) var(--ease-standard); }
+  a.gk-footer-col-head-link:hover { color: var(--gold-300); }
   .gk-footer-col-links { display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
   .gk-footer-col-links a { color: var(--navy-200); text-decoration: none; transition: color var(--dur-fast) var(--ease-standard); }
 
@@ -218,6 +238,8 @@
 {
   "name": "t:general.footer",
   "settings": [
+    { "type": "header", "content": "Navigation" },
+    { "type": "link_list", "id": "footer_menu", "label": "Footer menu", "info": "Build one menu in Online Store → Navigation: each top-level item becomes a column heading, and its nested items become that column's links. When set, this replaces the individual link-column blocks below." },
     { "type": "header", "content": "Brand" },
     { "type": "image_picker", "id": "logo", "label": "Footer logo", "info": "Defaults to the bundled Gotham horizontal lockup when empty." },
     { "type": "range", "id": "logo_width", "label": "Logo width (px)", "min": 120, "max": 360, "step": 10, "unit": "px", "default": 270 },
