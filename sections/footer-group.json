@@ -38,7 +38,8 @@
       "block_order": ["instagram", "tiktok", "shop", "club", "help"],
       "settings": {
         "show_payment_icons": true,
-        "copyright_tag": ""
+        "copyright_tag": "",
+        "footer_menu": "footer-nav"
       }
     },
     "gk-popup": {
