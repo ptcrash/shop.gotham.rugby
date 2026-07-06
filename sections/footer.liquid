@@ -131,7 +131,7 @@
 
   <div class="gk-footer-bottom">
     <div class="gk-footer-bottom-inner">
-      <span class="gk-footer-copy">&copy; {{ 'now' | date: '%Y' }} {{ shop.name }} · {{ section.settings.copyright_tag }}</span>
+      <span class="gk-footer-copy">&copy; {{ 'now' | date: '%Y' }} {{ shop.name }}{% if section.settings.copyright_tag != blank %} · {{ section.settings.copyright_tag }}{% endif %}</span>
       <span class="gk-footer-note">{{ section.settings.support_note }}</span>
     </div>
     {% if section.settings.show_payment_icons %}
@@ -229,7 +229,7 @@
     { "type": "checkbox", "id": "show_country_selector", "label": "Show country / currency selector", "default": true },
     { "type": "checkbox", "id": "show_language_selector", "label": "Show language selector", "default": true },
     { "type": "header", "content": "Bottom bar" },
-    { "type": "text", "id": "copyright_tag", "label": "Copyright tagline", "default": "All bodies, all levels." },
+    { "type": "text", "id": "copyright_tag", "label": "Copyright tagline", "info": "Appended after the copyright line as “ · <tagline>”. Leave blank to hide." },
     { "type": "text", "id": "support_note", "label": "Support note", "default": "Every purchase supports the club. Not a tax-deductible donation." },
     { "type": "checkbox", "id": "show_payment_icons", "label": "t:labels.show_payment_icons", "default": true }
   ],
