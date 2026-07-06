@@ -79,7 +79,7 @@
     </nav>
 
     <div class="gk-nav-actions">
-      <button type="button" class="gk-iconbtn gk-search-toggle" aria-label="Search" aria-expanded="false" aria-controls="gk-search-panel" data-gk-search-toggle>
+      <button type="button" class="gk-iconbtn gk-hsearch-toggle" aria-label="Search" aria-expanded="false" aria-controls="gk-hsearch-panel" data-gk-hsearch-toggle>
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.35-4.35"></path></svg>
       </button>
       {% if shop.customer_accounts_enabled %}
@@ -100,21 +100,21 @@
   </header>
 
   {% comment %} ---- Inline search panel (drops below the bar; submits to /search) ---- {% endcomment %}
-  <div class="gk-search-panel" id="gk-search-panel" data-gk-search hidden>
-    <form class="gk-search-form" role="search" action="{{ routes.search_url }}" method="get" data-gk-search-form>
-      <svg class="gk-search-ico" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.35-4.35"></path></svg>
+  <div class="gk-hsearch-panel" id="gk-hsearch-panel" data-gk-search hidden>
+    <form class="gk-hsearch-form" role="search" action="{{ routes.search_url }}" method="get" data-gk-hsearch-form>
+      <svg class="gk-hsearch-ico" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.35-4.35"></path></svg>
       <input
         type="search"
         name="q"
-        class="gk-search-input"
+        class="gk-hsearch-input"
         placeholder="Search products…"
         aria-label="Search"
         autocomplete="off"
-        data-gk-search-input
+        data-gk-hsearch-input
       >
       <input type="hidden" name="type" value="product">
-      <button type="submit" class="gk-btn gk-btn-primary gk-search-submit">Search</button>
-      <button type="button" class="gk-search-close" aria-label="Close search" data-gk-search-close>
+      <button type="submit" class="gk-btn gk-btn-primary gk-hsearch-submit">Search</button>
+      <button type="button" class="gk-hsearch-close" aria-label="Close search" data-gk-hsearch-close>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
       </button>
     </form>
@@ -258,10 +258,10 @@
     });
 
     /* ---- Inline search toggle ---- */
-    var searchToggle = root.querySelector('[data-gk-search-toggle]');
+    var searchToggle = root.querySelector('[data-gk-hsearch-toggle]');
     var searchPanel = root.querySelector('[data-gk-search]');
-    var searchForm = searchPanel ? searchPanel.querySelector('[data-gk-search-form]') : null;
-    var searchInput = searchPanel ? searchPanel.querySelector('[data-gk-search-input]') : null;
+    var searchForm = searchPanel ? searchPanel.querySelector('[data-gk-hsearch-form]') : null;
+    var searchInput = searchPanel ? searchPanel.querySelector('[data-gk-hsearch-input]') : null;
 
     function openSearch() {
       if (!searchPanel) return;
@@ -280,7 +280,7 @@
       });
     }
     if (searchPanel) {
-      searchPanel.querySelectorAll('[data-gk-search-close]').forEach(function (b) {
+      searchPanel.querySelectorAll('[data-gk-hsearch-close]').forEach(function (b) {
         b.addEventListener('click', closeSearch);
       });
     }
@@ -298,7 +298,7 @@
     });
     document.addEventListener('click', function (e) {
       if (!searchPanel || searchPanel.hidden) return;
-      if (e.target.closest('[data-gk-search]') || e.target.closest('[data-gk-search-toggle]')) return;
+      if (e.target.closest('[data-gk-search]') || e.target.closest('[data-gk-hsearch-toggle]')) return;
       closeSearch();
     });
   })();
@@ -313,25 +313,28 @@
   }
 
   /* Inline search panel */
-  .gk-search-panel { background: var(--navy-700); border-bottom: 2px solid var(--gold-500); }
-  .gk-search-panel[hidden] { display: none; }
-  .gk-search-form {
+  .gk-hsearch-panel { background: var(--navy-700); border-bottom: 2px solid var(--gold-500); }
+  .gk-hsearch-panel[hidden] { display: none; }
+  /* When the panel is open it extends the header, so drop the nav's own gold
+     underline — otherwise two gold lines stack (nav bottom + panel bottom). */
+  .gk-header:has(.gk-hsearch-panel:not([hidden])) .gk-nav { border-bottom-color: transparent; }
+  .gk-hsearch-form {
     max-width: var(--gk-content-width); margin: 0 auto;
     display: flex; align-items: center; gap: 12px; padding: 14px 28px;
   }
-  .gk-search-ico { color: var(--navy-200); flex: none; }
-  .gk-search-input {
+  .gk-hsearch-ico { color: var(--navy-200); flex: none; }
+  .gk-hsearch-input {
     flex: 1; min-width: 0; background: transparent; border: 0; outline: none;
     color: #fff; font: 500 16px var(--font-body); padding: 8px 0;
   }
-  .gk-search-input::placeholder { color: var(--navy-300); }
-  .gk-search-input::-webkit-search-cancel-button { filter: invert(1) grayscale(1) opacity(.6); }
-  .gk-search-submit { flex: none; font-size: 14px; padding: 12px 22px; }
-  .gk-search-close {
+  .gk-hsearch-input::placeholder { color: var(--navy-300); }
+  .gk-hsearch-input::-webkit-search-cancel-button { filter: invert(1) grayscale(1) opacity(.6); }
+  .gk-hsearch-submit { flex: none; font-size: 14px; padding: 12px 22px; }
+  .gk-hsearch-close {
     flex: none; display: grid; place-items: center; width: 40px; height: 40px;
     background: transparent; border: 0; color: #fff; cursor: pointer; border-radius: 8px;
   }
-  .gk-search-close:hover { background: rgba(255,255,255,.14); }
+  .gk-hsearch-close:hover { background: rgba(255,255,255,.14); }
   .gk-brand { display: flex; align-items: center; gap: 11px; text-decoration: none; flex: none; }
   .gk-brand svg { height: 36px; width: auto; display: block; }
   .gk-brand-logo { height: auto; width: auto; max-height: 44px; display: block; }
@@ -452,8 +455,8 @@
 
   @media (max-width: 860px) {
     .gk-nav { padding: 11px 15px; }
-    .gk-search-form { padding: 12px 15px; gap: 9px; }
-    .gk-search-submit { padding: 12px 16px; }
+    .gk-hsearch-form { padding: 12px 15px; gap: 9px; }
+    .gk-hsearch-submit { padding: 12px 16px; }
     .gk-nav-links { display: none; }
     .gk-nav-burger { display: grid; }
     .gk-brand { gap: 9px; }
