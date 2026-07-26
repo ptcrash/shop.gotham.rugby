@@ -19,7 +19,9 @@
         "detail2": { "type": "detail", "settings": { "heading": "Care", "body": "<p>Machine wash cold, inside out. Tumble dry low.</p>" } }
       },
       "block_order": ["trust1", "trust2", "trust3", "detail1", "detail2"],
-      "settings": {}
+      "settings": {
+        "size_guide": "<p>Body measurements in inches. This shirt has an oversized fit — if you're between sizes or want a trimmer look, size down.</p><table><tr><th>Size</th><th>Chest</th><th>Waist</th><th>Hips</th></tr><tr><th>2XS</th><td>34⅝</td><td>28¼</td><td>35⅜</td></tr><tr><th>XS</th><td>36¼</td><td>29⅞</td><td>37</td></tr><tr><th>S</th><td>37¾</td><td>31½</td><td>38⅝</td></tr><tr><th>M</th><td>39⅜</td><td>33⅛</td><td>40¼</td></tr><tr><th>L</th><td>42½</td><td>36¼</td><td>43¼</td></tr><tr><th>XL</th><td>45¾</td><td>39⅜</td><td>46½</td></tr><tr><th>2XL</th><td>48¾</td><td>42½</td><td>49⅝</td></tr><tr><th>3XL</th><td>52</td><td>45¾</td><td>52¾</td></tr><tr><th>4XL</th><td>55⅛</td><td>48¾</td><td>55⅞</td></tr><tr><th>5XL</th><td>58¼</td><td>52</td><td>59⅛</td></tr><tr><th>6XL</th><td>61⅜</td><td>55⅛</td><td>62¼</td></tr></table>"
+      }
     },
     "recommendations": {
       "type": "gk-product-recommendations",
