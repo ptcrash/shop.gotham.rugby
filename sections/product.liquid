@@ -344,6 +344,26 @@
       }
     }
 
+    // Swap the gallery to the variant's assigned image (set per-variant in the
+    // admin). Variants without an image leave the gallery untouched.
+    function showVariantImage(v) {
+      if (!v.featured_image || !v.featured_image.src) { return; }
+      var main = document.querySelector('.gk-pdp-main-img');
+      if (!main) { return; }
+      var base = v.featured_image.src;
+      var sep = base.indexOf('?') === -1 ? '?' : '&';
+      main.srcset = base + sep + 'width=600 600w, ' + base + sep + 'width=900 900w, ' + base + sep + 'width=1200 1200w';
+      main.src = base + sep + 'width=900';
+      if (v.featured_image.alt) { main.alt = v.featured_image.alt; }
+      var path = base.split('?')[0];
+      document.querySelectorAll('.gk-pdp-thumb').forEach(function (t) {
+        var match = !!t.dataset.full && t.dataset.full.split('?')[0] === path;
+        t.classList.toggle('is-active', match);
+        if (match) { t.setAttribute('aria-current', 'true'); }
+        else { t.removeAttribute('aria-current'); }
+      });
+    }
+
     function update() {
       refreshAvailability();
       var v = variantFor(selected);
@@ -354,6 +374,7 @@
         return;
       }
       idInput.value = v.id;
+      showVariantImage(v);
       var priceStr = formatMoney(v.price);
       if (priceEl) { priceEl.textContent = priceStr; }
       if (stickyMeta) { stickyMeta.textContent = v.title + ' · ' + priceStr; }
