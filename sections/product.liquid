@@ -98,7 +98,7 @@
                       {% for value in option.values %}
                         {% assign v_selected = false %}
                         {% if value.selected %}{% assign v_selected = true %}{% elsif option.selected_value == value %}{% assign v_selected = true %}{% endif %}
-                        {% render 'swatch', value: value, mode: 'pdp', selected: v_selected, position: forloop.index %}
+                        {% render 'swatch', value: value, mode: 'pdp', selected: v_selected, position: option.position %}
                       {% endfor %}
                     </div>
                   {% else %}
@@ -111,7 +111,7 @@
                         {% assign v_name = value.name | default: value %}
                         {% assign v_selected = false %}
                         {% if value.selected %}{% assign v_selected = true %}{% elsif option.selected_value == value %}{% assign v_selected = true %}{% endif %}
-                        <button type="button" class="gk-pdp-size{% if v_selected %} is-active{% endif %}" data-option="{{ forloop.index }}" data-value="{{ v_name | escape }}" aria-pressed="{% if v_selected %}true{% else %}false{% endif %}">{{ v_name }}</button>
+                        <button type="button" class="gk-pdp-size{% if v_selected %} is-active{% endif %}" data-option="{{ option.position }}" data-value="{{ v_name | escape }}" aria-pressed="{% if v_selected %}true{% else %}false{% endif %}">{{ v_name }}</button>
                       {% endfor %}
                     </div>
                   {% endif %}
