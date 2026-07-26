@@ -74,7 +74,8 @@
           <p class="gk-onboarding-note">This section is empty, so it’s hidden on your live store. Pick a collection (for example, <strong>Best Sellers</strong>) or add Product blocks to show it.</p>
           <div class="gk-pgrid">
             {% for i in (1..limit) %}
-              {% render 'product-card-placeholder', dark: forloop.index0 | modulo: 2 %}
+              {% assign placeholder_dark = forloop.index0 | modulo: 2 %}
+              {% render 'product-card-placeholder', dark: placeholder_dark %}
             {% endfor %}
           </div>
         </div>

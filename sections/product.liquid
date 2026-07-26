@@ -9,6 +9,11 @@
   assign has_images = product.images.size
 
   comment
+    Size guide: per-product metafield wins, then the theme's global fallback setting.
+  endcomment
+  assign size_guide_html = product.metafields.custom.size_chart.value | default: section.settings.size_guide
+
+  comment
     Badge: merchant metafield wins, then a case-insensitive tag match.
   endcomment
   assign pdp_badge = product.metafields.custom.badge.value | default: product.metafields.custom.badge
@@ -99,7 +104,7 @@
                   {% else %}
                     <div class="gk-pdp-optrow">
                       <span class="gk-pdp-optname">{{ option.name }}</span>
-                      {% if opt_down == 'size' and section.settings.size_guide != blank %}<a class="gk-tlink gk-pdp-sizeguide" href="#gk-size-guide" aria-haspopup="dialog">Size guide</a>{% endif %}
+                      {% if opt_down == 'size' and size_guide_html != blank %}<a class="gk-tlink gk-pdp-sizeguide" href="#gk-size-guide" aria-haspopup="dialog">Size guide</a>{% endif %}
                     </div>
                     <div class="gk-pdp-sizes">
                       {% for value in option.values %}
@@ -185,7 +190,7 @@
   </div>
 
   {% comment %} ---- Size guide modal ---- {% endcomment %}
-  {% if section.settings.size_guide != blank %}
+  {% if size_guide_html != blank %}
     <div class="gk-modal full-width" id="gk-size-guide" hidden>
       <div class="gk-modal-backdrop" data-gk-modal-close></div>
       <div class="gk-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="gk-size-guide-title" tabindex="-1">
@@ -195,7 +200,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
           </button>
         </div>
-        <div class="gk-modal-body">{{ section.settings.size_guide }}</div>
+        <div class="gk-modal-body">{{ size_guide_html }}</div>
       </div>
     </div>
   {% endif %}
@@ -576,7 +581,7 @@
     { "type": "textarea", "id": "support_note", "label": "Support note", "default": "Your purchase supports Gotham Rugby — kit, pitch time, and travel for NYC's inclusive rugby club. (Not a tax-deductible donation.)" },
     { "type": "header", "content": "Size guide" },
     { "type": "text", "id": "size_guide_heading", "label": "Size guide heading", "default": "Size guide" },
-    { "type": "richtext", "id": "size_guide", "label": "Size guide content", "info": "Shown in a popup from the \"Size guide\" link next to the size selector. Paste a sizing table or measurements. Leave empty to hide the link.", "default": "<p>Measurements are body measurements in inches. Unisex fit — size down for a trimmer cut.</p>" }
+    { "type": "html", "id": "size_guide", "label": "Size guide content", "info": "Shown in a popup from the \"Size guide\" link next to the size selector. Accepts a full HTML sizing table (styled automatically). Leave empty to hide the link.", "default": "<p>Measurements are body measurements in inches. Unisex fit — size down for a trimmer cut.</p>" }
   ],
   "blocks": [
     { "type": "@app" },

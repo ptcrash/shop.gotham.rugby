@@ -19,7 +19,9 @@
         "detail2": { "type": "detail", "settings": { "heading": "Care", "body": "<p>Machine wash cold, inside out. Tumble dry low.</p>" } }
       },
       "block_order": ["trust1", "trust2", "trust3", "detail1", "detail2"],
-      "settings": {}
+      "settings": {
+        "size_guide": "<p>Body measurements in inches. Fit is unisex — if you're between sizes or want a trimmer look, size down. See the product details for garment-specific measurements.</p>"
+      }
     },
     "recommendations": {
       "type": "gk-product-recommendations",
