@@ -42,3 +42,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Simulate variant selection against sections/product.liquid
         run: node .github/scripts/variant_picker_test.mjs
+
+  staging-first:
+    name: Staging-first gate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    steps:
+      - name: Require PRs into main to come from staging
+        run: |
+          if [ "${{ github.head_ref }}" != "staging" ]; then
+            echo "::error::PRs into main must come from the staging branch. Merge into staging, verify on the dev shop (gotham-rugby-staging), then open staging → main."
+            exit 1
+          fi
+          echo "PR originates from staging — ok"
