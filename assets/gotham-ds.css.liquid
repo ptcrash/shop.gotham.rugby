@@ -310,6 +310,11 @@ body.gk {
 .gk-btn-invert { background: transparent; border: 2px solid var(--navy-700); color: var(--navy-700); font-size: 14px; padding: 14px 32px; }
 .gk-btn-invert:hover { background: var(--navy-600); color: #fff; border-color: var(--navy-600); }
 
+/* Quantity stepper (shared by PDP, cart drawer, cart page — each sets its own
+   button/input sizing) */
+.gk-qty { display: flex; align-items: center; border: 1.5px solid var(--border-strong); border-radius: 6px; overflow: hidden; background: #fff; }
+.gk-qty-btn { border: 0; background: #fff; font-size: 20px; color: var(--navy-700); cursor: pointer; }
+
 /* Text link with gold underline */
 .gk-tlink {
   font: 700 13px var(--font-body); text-transform: uppercase; letter-spacing: .06em;

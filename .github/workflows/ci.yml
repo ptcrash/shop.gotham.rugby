@@ -43,6 +43,14 @@ jobs:
       - name: Simulate variant selection against sections/product.liquid
         run: node .github/scripts/variant_picker_test.mjs
 
+  cart-drawer:
+    name: Cart drawer regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Simulate add/change/remove against sections/gk-cart-drawer.liquid
+        run: node .github/scripts/cart_drawer_test.mjs
+
   staging-first:
     name: Staging-first gate
     runs-on: ubuntu-latest
