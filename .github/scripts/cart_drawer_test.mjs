@@ -5,12 +5,16 @@
 // /cart/add.js interception and its /cart/change.js line mutations.
 //
 // Like variant_picker_test.mjs, it avoids asserting on template text:
-//   1. parses the data-line expressions the template actually renders on the
-//      line controls (the 1-based-line contract with /cart/change.js),
+//   1. checks the template's line-addressing contract (immutable item keys),
 //   2. builds a mini-DOM fixture the way the template would,
 //   3. extracts and runs the REAL inline <script> from gk-cart-drawer.liquid,
 //   4. submits add forms and clicks line controls, asserting on the network
 //      requests the drawer issues.
+//
+// Mutation semantics under test: everything flows through one serialized
+// queue — nothing is silently dropped while a request is in flight (two
+// rapid adds of different products both land), same-form double-submits are
+// debounced, and rapid +/− clicks on a line coalesce to the final quantity.
 //
 // Runs on plain Node (no dependencies): node .github/scripts/cart_drawer_test.mjs
 
@@ -24,36 +28,15 @@ const drawerSrc = readFileSync(join(themeRoot, 'sections', 'gk-cart-drawer.liqui
 const SECTION_ID = 'gk-drawer-test';
 
 // ---------------------------------------------------------------------------
-// 1. Parse the data-line expressions the template renders on line controls
+// 1. Template contract: lines are addressed by immutable item key
 // ---------------------------------------------------------------------------
+// /cart/change.js is called with { id: <line item key> }, never a 1-based
+// line index, so a queued mutation can't hit the wrong line after a removal
+// re-numbers the cart. That requires the key on every rendered line.
 
-function lineExprFor(marker) {
-  let m = drawerSrc.match(new RegExp(marker + '[^>]*data-line="\\{\\{\\s*(.+?)\\s*\\}\\}"'));
-  if (!m) m = drawerSrc.match(new RegExp('data-line="\\{\\{\\s*(.+?)\\s*\\}\\}"[^>]*' + marker));
-  if (!m) {
-    throw new Error(`Could not find the data-line expression for ${marker} in sections/gk-cart-drawer.liquid — the markup changed, update cart_drawer_test.mjs to match.`);
-  }
-  return m[1];
+if (!/class="gk-cart-line"[^>]*data-key="\{\{\s*item\.key\s*\}\}"/.test(drawerSrc)) {
+  throw new Error('sections/gk-cart-drawer.liquid no longer renders data-key="{{ item.key }}" on .gk-cart-line — the drawer JS addresses lines by key; update the template or cart_drawer_test.mjs to match.');
 }
-
-// Evaluate a Liquid data-line expression for the i-th (0-based) cart line.
-// /cart/change.js takes a 1-based line — forloop.index0 here is the bug this
-// parser exists to catch, so it is supported and the assertions then fail.
-function evalLineExpr(expr, i) {
-  switch (expr) {
-    case 'forloop.index': return i + 1;
-    case 'forloop.index0': return i;
-    default:
-      throw new Error(`Unrecognized data-line expression "${expr}" in sections/gk-cart-drawer.liquid — update evalLineExpr() in cart_drawer_test.mjs.`);
-  }
-}
-
-const LINE_EXPRS = {
-  minus: lineExprFor('data-gk-cart-minus'),
-  qty: lineExprFor('data-gk-cart-qty'),
-  plus: lineExprFor('data-gk-cart-plus'),
-  remove: lineExprFor('data-gk-cart-remove'),
-};
 
 // ---------------------------------------------------------------------------
 // 2. Minimal DOM: just enough for the drawer script
@@ -206,10 +189,10 @@ class DOMParserStub {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Fixture: drawer + cart lines + a PDP-style add form elsewhere on the page
+// 3. Fixture: drawer + cart lines + two product add forms elsewhere on the page
 // ---------------------------------------------------------------------------
 
-function buildFixture({ lines = [{ qty: 2 }, { qty: 1 }], variantId = '1001', formQty = '2' } = {}) {
+function buildFixture({ lines = [{ qty: 2, key: '40001:aaa' }, { qty: 1, key: '40002:bbb' }], variantId = '1001', formQty = '2' } = {}) {
   const root = new El('div', ['root']);
 
   const drawer = new El('div', ['gk-cart-drawer'], { 'data-gk-cart': '', 'data-section-id': SECTION_ID, id: 'gk-cart-drawer' });
@@ -224,31 +207,37 @@ function buildFixture({ lines = [{ qty: 2 }, { qty: 1 }], variantId = '1001', fo
   const renderRegion = new El('div', ['gk-cart-render'], { 'data-gk-cart-render': '' });
   const cartForm = new El('form', ['gk-cart-form'], { action: '/cart', id: 'gk-cart-form' });
   const ul = new El('ul', ['gk-cart-lines'], { 'data-gk-cart-lines': '' });
-  const lineEls = lines.map((l, i) => {
-    const li = new El('li', ['gk-cart-line'], { 'data-line': String(i + 1) });
-    const minus = new El('button', ['gk-qty-btn'], { 'data-gk-cart-minus': '', 'data-line': String(evalLineExpr(LINE_EXPRS.minus, i)) });
-    const input = new El('input', ['gk-cart-qty-input'], { 'data-gk-cart-qty': '', 'data-line': String(evalLineExpr(LINE_EXPRS.qty, i)), name: 'updates[]', value: String(l.qty) });
-    const plus = new El('button', ['gk-qty-btn'], { 'data-gk-cart-plus': '', 'data-line': String(evalLineExpr(LINE_EXPRS.plus, i)) });
-    const remove = new El('button', ['gk-cart-remove'], { 'data-gk-cart-remove': '', 'data-line': String(evalLineExpr(LINE_EXPRS.remove, i)) });
+  const lineEls = lines.map((l) => {
+    const li = new El('li', ['gk-cart-line'], { 'data-key': l.key });
+    const minus = new El('button', ['gk-qty-btn'], { 'data-gk-cart-minus': '' });
+    const input = new El('input', ['gk-cart-qty-input'], { 'data-gk-cart-qty': '', name: 'updates[]', value: String(l.qty) });
+    const plus = new El('button', ['gk-qty-btn'], { 'data-gk-cart-plus': '' });
+    const remove = new El('button', ['gk-cart-remove'], { 'data-gk-cart-remove': '' });
     li.append(minus, input, plus, remove);
     ul.append(li);
-    return { li, minus, input, plus, remove };
+    return { li, minus, input, plus, remove, key: l.key };
   });
   cartForm.append(ul);
   renderRegion.append(cartForm);
   panel.append(head, renderRegion);
   drawer.append(backdrop, panel);
 
-  // A product add form, the way the PDP renders one (outside the drawer).
+  // Two product add forms, the way the PDP / quick-add cards render them
+  // (outside the drawer) — two DIFFERENT products for the rapid-add tests.
   const addForm = new El('form', ['gk-pdp-form'], { action: '/cart/add', id: 'gk-add-form' });
   const idInput = new El('input', [], { name: 'id', value: variantId, id: 'gk-variant-id' });
   const qtyInput = new El('input', [], { name: 'quantity', value: formQty });
   const addBtn = new El('button', ['gk-btn', 'gk-pdp-add'], { type: 'submit' });
   addForm.append(idInput, qtyInput, addBtn);
+  const addForm2 = new El('form', ['gk-qa-form'], { action: '/cart/add', id: 'gk-add-form-2' });
+  const idInput2 = new El('input', [], { name: 'id', value: '1002' });
+  const qtyInput2 = new El('input', [], { name: 'quantity', value: '1' });
+  const addBtn2 = new El('button', ['gk-qa'], { type: 'submit' });
+  addForm2.append(idInput2, qtyInput2, addBtn2);
 
-  root.append(drawer, addForm);
+  root.append(drawer, addForm, addForm2);
   const document = makeDocument(root);
-  return { root, document, drawer, panel, count, lines: lineEls, addForm, idInput, qtyInput };
+  return { root, document, drawer, panel, count, lines: lineEls, addForm, idInput, qtyInput, addForm2 };
 }
 
 // ---------------------------------------------------------------------------
@@ -264,10 +253,15 @@ function drawerScript() {
   return m[1];
 }
 
-function makeFetch(calls, { failAdd = false } = {}) {
+function makeFetch(calls, { failAdd = false, rejectChangeOnce = false } = {}) {
   const json = (obj) => Promise.resolve({ ok: true, json: () => Promise.resolve(obj), text: () => Promise.resolve('') });
+  let changeRejections = rejectChangeOnce ? 1 : 0;
   return function fetchStub(url, opts) {
     calls.push({ url: String(url), opts: opts || {} });
+    if (String(url) === '/cart/change.js' && changeRejections > 0) {
+      changeRejections -= 1;
+      return Promise.reject(new Error('network down'));
+    }
     if (String(url) === '/cart/add.js' && failAdd) {
       return Promise.resolve({ ok: false, json: () => Promise.resolve({ status: 422, description: 'sold out' }) });
     }
@@ -288,9 +282,9 @@ function setup(opts = {}) {
   return fx;
 }
 
-// Let the drawer's promise chains (fetch → refresh → busy release) settle.
+// Let the drawer's promise chains (queue → fetch → refresh) settle.
 const flush = () => new Promise((r) => setTimeout(r, 0));
-async function settle(n = 4) { for (let i = 0; i < n; i++) await flush(); }
+async function settle(n = 6) { for (let i = 0; i < n; i++) await flush(); }
 
 // ---------------------------------------------------------------------------
 // 5. Tests
@@ -313,7 +307,6 @@ function assertEqual(actual, expected, what) {
 }
 
 console.log('cart drawer regression test');
-console.log(`  data-line expressions: minus="${LINE_EXPRS.minus}", qty="${LINE_EXPRS.qty}", plus="${LINE_EXPRS.plus}", remove="${LINE_EXPRS.remove}"`);
 
 await check('add: posts the selected variant id and quantity to /cart/add.js', async () => {
   const fx = setup();
@@ -339,7 +332,7 @@ await check('add: refreshes via /cart.js + the section render URL and opens the 
   assertEqual(fx.count.textContent, '3', 'header cart count after refresh');
 });
 
-await check('lines: + posts the 1-based line and incremented quantity to /cart/change.js', async () => {
+await check('lines: + posts the line key and incremented quantity to /cart/change.js', async () => {
   const fx = setup(); // line 2 starts at qty 1
   dispatch(fx.document, 'click', fx.lines[1].plus);
   await settle();
@@ -347,8 +340,9 @@ await check('lines: + posts the 1-based line and incremented quantity to /cart/c
   if (!change) throw new Error('no POST to /cart/change.js');
   assertEqual(change.opts.method, 'POST', 'method');
   const body = JSON.parse(change.opts.body);
-  assertEqual(body.line, 2, 'line (1-based — /cart/change.js would mutate the WRONG line otherwise)');
+  assertEqual(body.id, fx.lines[1].key, 'line item key — index addressing hits the WRONG line after a removal');
   assertEqual(body.quantity, 2, 'quantity after +');
+  assertEqual(fx.lines[1].input.value, '2', 'input updates optimistically');
 });
 
 await check('lines: − posts the decremented quantity, clamped at 0', async () => {
@@ -356,7 +350,7 @@ await check('lines: − posts the decremented quantity, clamped at 0', async () 
   dispatch(fx.document, 'click', fx.lines[0].minus);
   await settle();
   let body = JSON.parse(fx.calls.find((c) => c.url === '/cart/change.js').opts.body);
-  assertEqual(body.line, 1, 'line');
+  assertEqual(body.id, fx.lines[0].key, 'line item key');
   assertEqual(body.quantity, 1, 'quantity after −');
   fx.calls.length = 0;
   fx.lines[0].input.value = '0';
@@ -372,7 +366,7 @@ await check('lines: typing a quantity posts the typed value for that line', asyn
   dispatch(fx.document, 'change', fx.lines[0].input);
   await settle();
   const body = JSON.parse(fx.calls.find((c) => c.url === '/cart/change.js').opts.body);
-  assertEqual(body.line, 1, 'line');
+  assertEqual(body.id, fx.lines[0].key, 'line item key');
   assertEqual(body.quantity, 5, 'typed quantity');
 });
 
@@ -381,11 +375,55 @@ await check('lines: remove posts quantity 0 for that line', async () => {
   dispatch(fx.document, 'click', fx.lines[1].remove);
   await settle();
   const body = JSON.parse(fx.calls.find((c) => c.url === '/cart/change.js').opts.body);
-  assertEqual(body.line, 2, 'line');
+  assertEqual(body.id, fx.lines[1].key, 'line item key');
   assertEqual(body.quantity, 0, 'remove posts quantity 0');
 });
 
-await check('busy-lock: releases after each resolved request', async () => {
+await check('lines: rapid +/+ coalesces to one request with the compounded quantity', async () => {
+  const fx = setup(); // line 1 starts at qty 2
+  dispatch(fx.document, 'click', fx.lines[0].plus);
+  dispatch(fx.document, 'click', fx.lines[0].plus); // before the first resolves
+  await settle();
+  const changes = fx.calls.filter((c) => c.url === '/cart/change.js');
+  assertEqual(changes.length, 1, 'requests — rapid clicks coalesce, they are not dropped');
+  assertEqual(JSON.parse(changes[0].opts.body).quantity, 4, 'quantity compounds 2 → 3 → 4 across rapid clicks');
+  assertEqual(fx.lines[0].input.value, '4', 'input reflects both clicks');
+});
+
+await check('adds: two different products in quick succession BOTH post', async () => {
+  const fx = setup();
+  dispatch(fx.document, 'submit', fx.addForm);
+  dispatch(fx.document, 'submit', fx.addForm2); // while the first add is in flight
+  await settle();
+  const adds = fx.calls.filter((c) => c.url === '/cart/add.js');
+  assertEqual(adds.length, 2, 'POSTs to /cart/add.js — the old global busy-lock silently swallowed the second product');
+  assertEqual(adds[0].opts.body.get('id'), '1001', 'first add id');
+  assertEqual(adds[1].opts.body.get('id'), '1002', 'second add id (queued, in order)');
+  if (fx.drawer.classList.contains('is-busy')) throw new Error('drawer stuck is-busy after the queue drained');
+});
+
+await check('adds: double-submitting the SAME form while in flight posts once', async () => {
+  const fx = setup();
+  dispatch(fx.document, 'submit', fx.addForm);
+  dispatch(fx.document, 'submit', fx.addForm);
+  await settle();
+  assertEqual(fx.calls.filter((c) => c.url === '/cart/add.js').length, 1, 'a double-click must not add the product twice');
+});
+
+await check('queue: a qty click during an in-flight add lands after it, in order', async () => {
+  const fx = setup();
+  dispatch(fx.document, 'submit', fx.addForm);
+  dispatch(fx.document, 'click', fx.lines[0].plus);
+  await settle();
+  const urls = fx.calls.map((c) => c.url);
+  const addIdx = urls.indexOf('/cart/add.js');
+  const changeIdx = urls.indexOf('/cart/change.js');
+  if (addIdx === -1) throw new Error('add was dropped');
+  if (changeIdx === -1) throw new Error('qty change during an in-flight add was silently dropped');
+  if (changeIdx < addIdx) throw new Error('mutations ran out of order');
+});
+
+await check('queue: releases after each resolved request', async () => {
   const fx = setup();
   dispatch(fx.document, 'submit', fx.addForm);
   await settle();
@@ -393,26 +431,28 @@ await check('busy-lock: releases after each resolved request', async () => {
   dispatch(fx.document, 'click', fx.lines[0].plus);
   await settle();
   if (!fx.calls.some((c) => c.url === '/cart/change.js')) {
-    throw new Error('quantity change blocked after a resolved add — the busy-lock wedged');
+    throw new Error('quantity change blocked after a resolved add — the queue wedged');
   }
   fx.calls.length = 0;
   dispatch(fx.document, 'click', fx.lines[0].plus);
   await settle();
   if (!fx.calls.some((c) => c.url === '/cart/change.js')) {
-    throw new Error('second quantity change blocked — the busy-lock wedged after /cart/change.js resolved');
+    throw new Error('second quantity change blocked — the queue wedged after /cart/change.js resolved');
   }
 });
 
-await check('busy-lock: concurrent clicks collapse to one in-flight request', async () => {
-  const fx = setup();
+await check('queue: a failed change still resyncs the drawer and keeps working', async () => {
+  const fx = setup({ rejectChangeOnce: true });
   dispatch(fx.document, 'click', fx.lines[0].plus);
-  dispatch(fx.document, 'click', fx.lines[0].plus); // before the first resolves
   await settle();
-  const changes = fx.calls.filter((c) => c.url === '/cart/change.js');
-  assertEqual(changes.length, 1, 'in-flight requests to /cart/change.js');
+  if (!fx.calls.some((c) => c.url === '/cart.js')) throw new Error('no resync refresh after the failed change');
+  fx.calls.length = 0;
+  dispatch(fx.document, 'click', fx.lines[0].minus);
+  await settle();
+  if (!fx.calls.some((c) => c.url === '/cart/change.js')) throw new Error('queue wedged after a failed change');
 });
 
-await check('busy-lock: releases after a failed add (falls back to native submit)', async () => {
+await check('queue: releases after a failed add (falls back to native submit)', async () => {
   const fx = setup({ failAdd: true });
   dispatch(fx.document, 'submit', fx.addForm);
   await settle();
