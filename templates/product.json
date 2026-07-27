@@ -13,7 +13,7 @@
       "type": "product",
       "blocks": {
         "trust1": { "type": "trust", "settings": { "icon": "ship", "text": "Printed to order — ships in 3–5 business days" } },
-        "trust2": { "type": "trust", "settings": { "icon": "returns", "text": "Free 30-day returns & exchanges" } },
+        "trust2": { "type": "trust", "settings": { "icon": "returns", "text": "If it arrives wrong, we'll make it right" } },
         "trust3": { "type": "trust", "settings": { "icon": "secure", "text": "Secure checkout" } },
         "detail1": { "type": "detail", "settings": { "heading": "Materials & fit", "body": "<p>Cut from quality fabric, built to hold its shape. Unisex fit.</p>" } },
         "detail2": { "type": "detail", "settings": { "heading": "Care", "body": "<p>Machine wash cold, inside out. Tumble dry low.</p>" } }
