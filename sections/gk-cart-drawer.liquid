@@ -239,10 +239,13 @@
         if (!form.matches || !form.matches('form[action*="/cart/add"]')) return;
         if (busy) { e.preventDefault(); return; }
         e.preventDefault();
-        setBusy(true);
         var data = new FormData(form);
         var submitBtn = form.querySelector('[type="submit"]');
         if (submitBtn && submitBtn.name) data.append(submitBtn.name, submitBtn.value || '');
+        /* A blank id means the PDP cleared it (no variant for the selected
+           combination) — never post it, to /cart/add.js or anywhere else. */
+        if (!String(data.get('id') || '').trim()) { return; }
+        setBusy(true);
         fetch('/cart/add.js', { method: 'POST', headers: { 'Accept': 'application/json' }, body: data })
           .then(function (r) {
             if (!r.ok) { return r.json().then(function (err) { throw err; }); }

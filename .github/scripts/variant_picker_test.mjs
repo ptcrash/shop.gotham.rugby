@@ -118,7 +118,7 @@ class El {
 // 3. Fixture products and DOM construction (mirrors the template's markup)
 // ---------------------------------------------------------------------------
 
-function makeProduct(options, optionValues, { unavailable = [], prices = {}, images = {} } = {}) {
+function makeProduct(options, optionValues, { unavailable = [], missing = [], prices = {}, images = {} } = {}) {
   const variants = [];
   const combos = optionValues.reduce(
     (acc, values) => acc.flatMap((c) => values.map((v) => [...c, v])),
@@ -126,6 +126,7 @@ function makeProduct(options, optionValues, { unavailable = [], prices = {}, ima
   );
   combos.forEach((opts, i) => {
     const title = opts.join(' / ');
+    if (missing.includes(title)) return; // combination with NO variant (routine in POD catalogs)
     const imageKey = opts.find((o) => images[o]);
     variants.push({
       id: 1001 + i,
@@ -185,7 +186,11 @@ function buildFixture(product) {
     t.dataset.full = src;
     thumbs.append(t);
   }
-  root.append(form, mainImg, thumbs, reg(new El([], 'gk-price')), reg(new El([], 'gk-stickybar-meta')), reg(new El([], 'gk-stickybar')));
+  const stickyBar = reg(new El([], 'gk-stickybar'));
+  const stickyBtn = new El(['gk-btn', 'gk-btn-primary', 'gk-stickybar-add']);
+  stickyBtn.textContent = 'Add to cart';
+  stickyBar.append(stickyBtn);
+  root.append(form, mainImg, thumbs, reg(new El([], 'gk-price')), reg(new El([], 'gk-stickybar-meta')), stickyBar);
 
   const document = {
     getElementById: (id) => byId[id] || null,
@@ -195,7 +200,7 @@ function buildFixture(product) {
     body: new El(['body']),
   };
   document.body.style = {};
-  return { document, form, idInput, byId, mainImg, thumbs };
+  return { document, form, idInput, byId, mainImg, thumbs, stickyBtn };
 }
 
 // ---------------------------------------------------------------------------
@@ -339,6 +344,40 @@ console.log(`  data-option expressions: size="${EXPRS.size}", swatch position=${
     if (fx.form.querySelector('.gk-pdp-add').disabled) {
       throw new Error('Add to cart still disabled after moving to the in-stock Navy / 2XL');
     }
+  });
+}
+
+{
+  // Sticky-buy-bar gating: the sticky bar's button submits the same form as
+  // the main add button, so both must disable together, and a combination
+  // with NO variant must clear the hidden id — a stale id here is the
+  // on-screen-vs-ordered class of bug that cost a live order (a9a6281).
+  const product = makeProduct(['Color', 'Size'], [['Navy', 'Gold'], ['S', 'M']], {
+    missing: ['Gold / M'],
+    unavailable: ['Navy / M'],
+  });
+  const fx = runPicker(product);
+  const mainBtn = fx.form.querySelector('.gk-pdp-add');
+  check('missing combo: clears the hidden id and disables main + sticky buttons', () => {
+    clickValue(fx, 'Gold');
+    assertEqual(fx.idInput.value, variantId(product, 'Gold / S'), 'hidden variant id after Gold + S');
+    clickValue(fx, 'M'); // Gold / M has no variant at all
+    assertEqual(fx.idInput.value, '', 'hidden variant id for a combination with no variant');
+    if (!mainBtn.disabled) throw new Error('main add button stayed enabled for a missing combination');
+    if (!fx.stickyBtn.disabled) throw new Error('sticky add button stayed enabled for a missing combination — it can submit the stale variant');
+    assertEqual(fx.stickyBtn.textContent, 'Unavailable', 'sticky button label for a missing combination');
+  });
+  check('sold-out variant: main and sticky buttons both read "Sold out" and are disabled', () => {
+    clickValue(fx, 'Navy'); // Navy / M exists but is sold out
+    if (!mainBtn.disabled || !fx.stickyBtn.disabled) throw new Error('a sold-out variant left an add button enabled');
+    assertEqual(mainBtn.querySelector('.gk-pdp-add-label').textContent, 'Sold out', 'main add button label');
+    assertEqual(fx.stickyBtn.textContent, 'Sold out', 'sticky button label');
+  });
+  check('recovery: picking an in-stock variant re-enables both buttons', () => {
+    clickValue(fx, 'S');
+    assertEqual(fx.idInput.value, variantId(product, 'Navy / S'), 'hidden variant id after recovery');
+    if (mainBtn.disabled || fx.stickyBtn.disabled) throw new Error('add buttons still disabled after picking an in-stock variant');
+    assertEqual(fx.stickyBtn.textContent, 'Add to cart', 'sticky button label after recovery');
   });
 }
 
