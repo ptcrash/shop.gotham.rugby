@@ -1,1 +1,1 @@
-/Users/ptcrash/Projects/shop.gotham.rugby/gotham-theme/AGENTS.md
+AGENTS.md

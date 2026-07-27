@@ -2,6 +2,41 @@
 
 🚨 MANDATORY: YOU MUST CALL "learn_shopify_api" ONCE WHEN WORKING WITH LIQUID THEMES.
 
+## Project: Gotham Knights Shop
+
+This repo is the theme for shop.gotham.rugby (production store
+`q0951j-fv.myshopify.com`). Project-specific workflow — this overrides any
+generic habit:
+
+### Deploy flow: staging first, always
+
+- `main` is **live**: the published theme (`shop.gotham.rugby/main`) deploys from
+  it via the Shopify GitHub integration. The storefront can serve cached HTML for
+  up to ~45 min after a merge — verify deploys with `shopify theme pull`, not by
+  curling the page.
+- `staging` deploys to the dev shop `gotham-rugby-staging.myshopify.com` the same
+  way. **All changes go: feature branch → PR into `staging` → verify on the dev
+  shop → PR `staging` → `main`.** The "Staging-first gate" CI check blocks PRs
+  into `main` from any branch other than `staging`; both branches have rulesets
+  requiring green CI before merge. `shopify[bot]` bypasses the rulesets so theme
+  editor edits sync back.
+- Never commit directly to `main` or `staging` — it's rejected anyway.
+
+### Products
+
+- Before publishing a product (or auditing the catalog), use the **product-prep
+  skill**: `.claude/skills/product-prep/SKILL.md`. It covers the copy voice,
+  SEO, tags/badges, variant images, size-chart metafield, and the
+  publish-to-Online-Store-channel gotcha (ACTIVE status alone still 404s).
+
+### Seeding the dev shop
+
+- `.github/scripts/seed_staging.py` syncs the production catalog (products,
+  media, variant images, custom metafields, collections, menus) to the staging
+  shop and publishes everything to its Online Store channel. Idempotent —
+  matched by handle, media never duplicated; re-run whenever staging drifts.
+  Auth prerequisites are in the script's docstring.
+
 ## Theme Architecture
 
 **Key principles: focus on generating snippets, blocks, and sections; users may create templates using the theme editor**
