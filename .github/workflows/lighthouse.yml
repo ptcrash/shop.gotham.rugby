@@ -5,16 +5,19 @@ name: Lighthouse CI
 # collection pages. It is gated on the SHOP_STORE secret: until the repo secrets
 # are configured it skips cleanly (green) rather than failing every PR.
 #
+# Runs on PRs to any branch so audits happen where review happens — PRs into
+# staging (staging-first flow); the staging→main PR gets a final pass too.
+#
 # To enable, add these repository secrets (Settings > Secrets and variables > Actions):
-#   SHOP_STORE                 e.g. q0951j-fv.myshopify.com
-#   SHOP_CLIENT_ID             Shopify dev-dashboard app client id  (scopes: read_products, write_themes)
-#   SHOP_CLIENT_SECRET         Shopify dev-dashboard app client secret
-#   SHOP_STOREFRONT_PASSWORD   storefront password (if the shop is password-protected)
+#   SHOP_STORE                 use the staging shop: gotham-rugby-staging.myshopify.com
+#                              (the action uploads the PR's code as a temp theme there)
+#   SHOP_CLIENT_ID             Shopify Dev Dashboard app client id  (scopes: read_products, write_themes)
+#   SHOP_CLIENT_SECRET         Shopify Dev Dashboard app client secret
+#   SHOP_STOREFRONT_PASSWORD   the staging shop's storefront password
 #   LHCI_GITHUB_APP_TOKEN      Lighthouse CI GitHub App token (for PR status checks)
 
 on:
   pull_request:
-    branches: [main]
 
 concurrency:
   group: lighthouse-${{ github.ref }}
