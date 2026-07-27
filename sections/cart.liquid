@@ -157,7 +157,7 @@
   "name": "t:general.cart",
   "settings": [
     { "type": "header", "content": "Free shipping bar" },
-    { "type": "checkbox", "id": "show_free_shipping", "label": "Show free-shipping progress bar", "default": true },
+    { "type": "checkbox", "id": "show_free_shipping", "label": "Show free-shipping progress bar", "info": "Only enable after creating a matching free-shipping rate in Settings → Shipping and delivery — otherwise the cart promises a discount checkout won't honor.", "default": false },
     { "type": "number", "id": "free_shipping_threshold", "label": "Free shipping threshold (in store currency, whole units)", "default": 75 },
     { "type": "header", "content": "Order note" },
     { "type": "checkbox", "id": "show_note", "label": "Show order note field", "default": true },
