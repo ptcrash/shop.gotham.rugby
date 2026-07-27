@@ -37,6 +37,32 @@ generic habit:
   matched by handle, media never duplicated; re-run whenever staging drifts.
   Auth prerequisites are in the script's docstring.
 
+### Releases & theme version
+
+- `theme_version` in `config/settings_schema.json` (the `theme_info` block) is
+  the release number — it shows on the theme card in Online Store → Themes.
+  `.github/workflows/release.yml` mints the matching git tag `v<version>` and a
+  GitHub Release (auto-generated notes) on every push to `main` where that
+  version has no tag yet. Idempotent: `shopify[bot]` editor-sync commits and
+  unbumped merges no-op, and skipping the bump just means no release is minted.
+- **To cut a release:** run `python3 .github/scripts/bump_theme_version.py
+  major|minor|patch` right before opening the staging → main PR (or while one
+  is open — it picks the commit up). The script commits the bump straight to
+  `staging` via a temp worktree (admin bypass, same mechanics as true-ups).
+  Tags are the rollback/diff anchors: "what changed on the live theme" is
+  `git diff v1.0.0 v1.1.0`.
+- **Shop semver, not library semver** — the axis is rollback safety and what a
+  shopper/merchant experiences, not API compatibility:
+  - **major** — complete overhaul or aesthetic revamp, or any change you could
+    NOT undo by redeploying the previous tag (settings/template restructures
+    that drop merchant customizations, renamed metafields the old theme reads).
+  - **minor** — behavior or functionality changes, *including* ones that need
+    coordinated admin-side work (new metafields/metaobjects, seeder changes,
+    app config). The number can't encode those steps — list them in the
+    release notes so future-you knows what the deploy required.
+  - **patch** — cosmetic only: copy, CSS, spacing, image swaps. If behavior
+    changed, it's not a patch.
+
 ## Theme Architecture
 
 **Key principles: focus on generating snippets, blocks, and sections; users may create templates using the theme editor**
