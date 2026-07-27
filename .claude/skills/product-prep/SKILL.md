@@ -21,6 +21,8 @@ query { productByHandle(handle: "HANDLE") {
   options { name }
   variants(first: 30) { nodes { title price sku image { id } } }
   sizeChart: metafield(namespace: "custom", key: "size_chart") { value }
+  materials: metafield(namespace: "custom", key: "materials") { value }
+  care: metafield(namespace: "custom", key: "care") { value }
 } }' | sed -n '/^{/,$p'
 ```
 
@@ -72,6 +74,19 @@ Wearables with a Size option need the `custom.size_chart` metafield
 generic setting otherwise). NOT needed for non-apparel that happens to have a
 Size option — mugs (11oz/15oz), flags, posters. Judge by "does a human wear it".
 
+### 6b. Detail accordions — materials & care (per product)
+The PDP renders a **Materials & fit** accordion only when `custom.materials` is set,
+and a **Care** accordion only when `custom.care` is set (both `rich_text_field`).
+They are per-product, not global — a product with neither (drinkware, flags, posters)
+shows only the Description accordion. This is deliberate: these used to be hardcoded
+theme blocks that put "unisex fit / machine wash" on every product regardless of
+what it was.
+
+- **Apparel**: set both. Write each garment's *own* copy — don't paste one shirt's
+  care onto another (weights, fabrics, and "do not iron the crest" differ).
+- **Non-apparel**: leave both empty. Specs and care belong in the description's
+  `Details` / `Good to know` lists instead.
+
 ### 7. Publish — status is not enough
 Setting `status: ACTIVE` does NOT put the product on the storefront. It must also be
 published to the Online Store sales channel or its URL 404s:
@@ -97,6 +112,10 @@ then flag per product:
   Color-variant products)
 - `no-size-chart`: Size option + no custom.size_chart metafield — but apply the
   wearables-only rule from step 6 before reporting
+- `no-detail-metafields`: apparel (wearable per step 6) with empty custom.materials
+  or custom.care — the PDP now shows those accordions only when the metafield is
+  set, so apparel without them has no materials/care panel. Non-apparel: expected,
+  don't flag.
 - `thin-description`: descriptionHtml under ~120 chars
 
 Report ACTIVE products first (customer-facing now), DRAFT products second
