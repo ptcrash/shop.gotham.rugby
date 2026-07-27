@@ -36,7 +36,7 @@
           <form action="{{ routes.cart_url }}" method="post" id="gk-cart-form" class="gk-cart-form">
             <ul class="gk-cart-lines" data-gk-cart-lines>
               {% for item in cart.items %}
-                <li class="gk-cart-line" data-line="{{ forloop.index }}" data-key="{{ item.key }}">
+                <li class="gk-cart-line" data-key="{{ item.key }}">
                   <a class="gk-cart-thumb" href="{{ item.url }}">
                     {% if item.image %}
                       {%- assign drawer_item_alt = item.title | escape -%}
@@ -57,7 +57,7 @@
 
                     <div class="gk-cart-line-bottom">
                       <div class="gk-qty gk-cart-qty">
-                        <button type="button" class="gk-qty-btn" data-gk-cart-minus data-line="{{ forloop.index }}" aria-label="Decrease quantity of {{ item.product.title | escape }}">&minus;</button>
+                        <button type="button" class="gk-qty-btn" data-gk-cart-minus aria-label="Decrease quantity of {{ item.product.title | escape }}">&minus;</button>
                         <input
                           type="number"
                           class="gk-cart-qty-input"
@@ -66,10 +66,9 @@
                           min="0"
                           inputmode="numeric"
                           data-gk-cart-qty
-                          data-line="{{ forloop.index }}"
                           aria-label="Quantity of {{ item.product.title | escape }}"
                         >
-                        <button type="button" class="gk-qty-btn" data-gk-cart-plus data-line="{{ forloop.index }}" aria-label="Increase quantity of {{ item.product.title | escape }}">+</button>
+                        <button type="button" class="gk-qty-btn" data-gk-cart-plus aria-label="Increase quantity of {{ item.product.title | escape }}">+</button>
                       </div>
                       <span class="gk-cart-price">
                         {% if item.original_line_price > item.final_line_price %}
@@ -80,7 +79,7 @@
                     </div>
                   </div>
 
-                  <button type="button" class="gk-cart-remove" data-gk-cart-remove data-line="{{ forloop.index }}" aria-label="Remove {{ item.product.title | escape }}">
+                  <button type="button" class="gk-cart-remove" data-gk-cart-remove aria-label="Remove {{ item.product.title | escape }}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                   </button>
                 </li>
@@ -116,7 +115,6 @@
       var panel = drawer.querySelector('.gk-cart-panel');
       var renderRegion = drawer.querySelector('[data-gk-cart-render]');
       var lastFocus = null;
-      var busy = false;
 
       /* ---------- open / close ---------- */
       function focusables() {
@@ -186,25 +184,44 @@
         });
       }
 
-      /* ---------- mutations ---------- */
+      /* ---------- mutations ----------
+         Every cart mutation flows through one serialized queue, so a request
+         in flight never silently drops the next interaction — rapidly adding
+         two different products lands both. Lines are addressed by their
+         immutable item key (never the 1-based line index), so a queued change
+         can't hit the wrong line after a removal re-numbers the cart. */
+      var queueTail = Promise.resolve();
+      var activeJobs = 0;
+      var pendingQty = {};   /* line key -> latest target qty (coalesces rapid clicks) */
+      var pendingForms = []; /* add forms queued or in flight (double-submit guard) */
+
       function setBusy(state) {
-        busy = state;
         drawer.classList.toggle('is-busy', state);
       }
-      function changeLine(line, qty, lineEl) {
-        if (busy) return;
-        busy = true;
-        /* Dim only the affected line while it updates — not the whole panel.
-           (No line element, e.g. a programmatic change, falls back to the panel state.) */
-        if (lineEl) { lineEl.classList.add('is-updating'); } else { setBusy(true); }
-        fetch('/cart/change.js', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({ line: line, quantity: qty })
-        })
-          .then(function () { return refresh(false); })
-          .catch(function () { if (lineEl) lineEl.classList.remove('is-updating'); })
-          .then(function () { busy = false; if (!lineEl) setBusy(false); });
+      function enqueue(job) {
+        activeJobs += 1;
+        queueTail = queueTail.then(job).catch(function () {}).then(function () {
+          activeJobs -= 1;
+          if (!activeJobs) { setBusy(false); }
+        });
+      }
+
+      function changeLine(key, qty, lineEl) {
+        pendingQty[key] = qty;
+        /* Dim only the affected line while it updates — not the whole panel. */
+        if (lineEl) { lineEl.classList.add('is-updating'); }
+        enqueue(function () {
+          if (!(key in pendingQty)) { return; }  /* coalesced into an earlier run */
+          var target = pendingQty[key];
+          delete pendingQty[key];
+          return fetch('/cart/change.js', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ id: key, quantity: target })
+          })
+            .then(function () { return refresh(false); })
+            .catch(function () { return refresh(false); }); /* resync even when the change fails */
+        });
       }
 
       /* Delegated line controls (survive re-render). */
@@ -212,51 +229,56 @@
         var minus = e.target.closest('[data-gk-cart-minus]');
         var plus = e.target.closest('[data-gk-cart-plus]');
         var remove = e.target.closest('[data-gk-cart-remove]');
-        if (minus) {
-          var li = minus.closest('.gk-cart-line');
-          var input = li.querySelector('[data-gk-cart-qty]');
-          var q = Math.max(0, (parseInt(input.value, 10) || 0) - 1);
-          changeLine(parseInt(minus.dataset.line, 10), q, li);
-        } else if (plus) {
-          var li2 = plus.closest('.gk-cart-line');
-          var input2 = li2.querySelector('[data-gk-cart-qty]');
-          var q2 = (parseInt(input2.value, 10) || 0) + 1;
-          changeLine(parseInt(plus.dataset.line, 10), q2, li2);
-        } else if (remove) {
-          changeLine(parseInt(remove.dataset.line, 10), 0, remove.closest('.gk-cart-line'));
-        }
+        var control = minus || plus || remove;
+        if (!control) { return; }
+        var li = control.closest('.gk-cart-line');
+        if (!li) { return; }
+        var key = li.getAttribute('data-key');
+        if (remove) { changeLine(key, 0, li); return; }
+        var input = li.querySelector('[data-gk-cart-qty]');
+        var q = Math.max(0, (parseInt(input.value, 10) || 0) + (plus ? 1 : -1));
+        input.value = q; /* optimistic, so rapid clicks compound instead of repeating */
+        changeLine(key, q, li);
       });
       drawer.addEventListener('change', function (e) {
         var input = e.target.closest('[data-gk-cart-qty]');
-        if (!input) return;
+        if (!input) { return; }
+        var li = input.closest('.gk-cart-line');
+        if (!li) { return; }
         var q = Math.max(0, parseInt(input.value, 10) || 0);
-        changeLine(parseInt(input.dataset.line, 10), q, input.closest('.gk-cart-line'));
+        changeLine(li.getAttribute('data-key'), q, li);
       });
 
       /* ---------- add-to-cart interception ---------- */
       document.addEventListener('submit', function (e) {
         var form = e.target;
         if (!form.matches || !form.matches('form[action*="/cart/add"]')) return;
-        if (busy) { e.preventDefault(); return; }
         e.preventDefault();
+        /* The same form re-submitting while its add is queued or in flight is
+           a double-click — ignore it. A different form (another product) must
+           queue behind the in-flight add, never be dropped. */
+        if (pendingForms.indexOf(form) !== -1) { return; }
         var data = new FormData(form);
         var submitBtn = form.querySelector('[type="submit"]');
         if (submitBtn && submitBtn.name) data.append(submitBtn.name, submitBtn.value || '');
         /* A blank id means the PDP cleared it (no variant for the selected
            combination) — never post it, to /cart/add.js or anywhere else. */
         if (!String(data.get('id') || '').trim()) { return; }
+        pendingForms.push(form);
         setBusy(true);
-        fetch('/cart/add.js', { method: 'POST', headers: { 'Accept': 'application/json' }, body: data })
-          .then(function (r) {
-            if (!r.ok) { return r.json().then(function (err) { throw err; }); }
-            return r.json();
-          })
-          .then(function () { return refresh(true); })
-          .catch(function () {
-            /* Fall back to a normal navigation if the AJAX add fails. */
-            form.submit();
-          })
-          .then(function () { setBusy(false); });
+        enqueue(function () {
+          return fetch('/cart/add.js', { method: 'POST', headers: { 'Accept': 'application/json' }, body: data })
+            .then(function (r) {
+              if (!r.ok) { return r.json().then(function (err) { throw err; }); }
+              return r.json();
+            })
+            .then(function () { return refresh(true); })
+            .catch(function () {
+              /* Fall back to a normal navigation if the AJAX add fails. */
+              form.submit();
+            })
+            .then(function () { pendingForms.splice(pendingForms.indexOf(form), 1); });
+        });
       });
     })();
   </script>
@@ -311,7 +333,9 @@
   .gk-cart-qty-input { width: 34px; text-align: center; border: 0; background: #fff; font: 600 14px var(--font-mono); color: var(--navy-700); -moz-appearance: textfield; }
   .gk-cart-qty-input::-webkit-outer-spin-button, .gk-cart-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .gk-cart-price { font: 600 14px var(--font-mono); color: var(--navy-700); white-space: nowrap; }
-  .gk-cart-was { color: var(--ink-400); margin-right: 6px; }
+  /* Compare-at price is real purchasing info — --ink-500 clears WCAG AA on
+     paper (5.55:1); --ink-400 (3.12:1) does not. */
+  .gk-cart-was { color: var(--ink-500); margin-right: 6px; }
   .gk-cart-remove { align-self: start; display: grid; place-items: center; width: 30px; height: 30px; border: 0; background: transparent; color: var(--ink-400); cursor: pointer; border-radius: 6px; }
   .gk-cart-remove:hover { color: var(--navy-700); background: var(--paper-2); }
 
