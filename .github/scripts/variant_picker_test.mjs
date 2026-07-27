@@ -118,7 +118,7 @@ class El {
 // 3. Fixture products and DOM construction (mirrors the template's markup)
 // ---------------------------------------------------------------------------
 
-function makeProduct(options, optionValues, { unavailable = [], prices = {} } = {}) {
+function makeProduct(options, optionValues, { unavailable = [], prices = {}, images = {} } = {}) {
   const variants = [];
   const combos = optionValues.reduce(
     (acc, values) => acc.flatMap((c) => values.map((v) => [...c, v])),
@@ -126,12 +126,14 @@ function makeProduct(options, optionValues, { unavailable = [], prices = {} } = 
   );
   combos.forEach((opts, i) => {
     const title = opts.join(' / ');
+    const imageKey = opts.find((o) => images[o]);
     variants.push({
       id: 1001 + i,
       title,
       options: opts,
       available: !unavailable.includes(title),
       price: prices[title] ?? 4500,
+      featured_image: imageKey ? { src: images[imageKey], alt: imageKey } : null,
     });
   });
   return { options, optionValues, variants };
@@ -173,7 +175,17 @@ function buildFixture(product) {
   qty.value = '1';
   form.append(addBtn, qty);
 
-  root.append(form, reg(new El([], 'gk-price')), reg(new El([], 'gk-stickybar-meta')), reg(new El([], 'gk-stickybar')));
+  const mainImg = new El(['gk-pdp-main-img']);
+  const thumbs = new El(['gk-pdp-thumbs']);
+  for (const v of product.variants) {
+    if (!v.featured_image) continue;
+    const src = v.featured_image.src;
+    if (thumbs.children.some((t) => t.dataset.full === src)) continue;
+    const t = new El(['gk-pdp-thumb']);
+    t.dataset.full = src;
+    thumbs.append(t);
+  }
+  root.append(form, mainImg, thumbs, reg(new El([], 'gk-price')), reg(new El([], 'gk-stickybar-meta')), reg(new El([], 'gk-stickybar')));
 
   const document = {
     getElementById: (id) => byId[id] || null,
@@ -183,7 +195,7 @@ function buildFixture(product) {
     body: new El(['body']),
   };
   document.body.style = {};
-  return { document, form, idInput, byId };
+  return { document, form, idInput, byId, mainImg, thumbs };
 }
 
 // ---------------------------------------------------------------------------
@@ -266,6 +278,9 @@ console.log(`  data-option expressions: size="${EXPRS.size}", swatch position=${
       assertEqual(fx.idInput.value, variantId(product, s), `hidden variant id after clicking ${s}`);
     }
   });
+  check('size-only: variants without an assigned image leave the gallery untouched', () => {
+    assertEqual(fx.mainImg.src || '', '', 'main image src');
+  });
 }
 
 {
@@ -273,6 +288,10 @@ console.log(`  data-option expressions: size="${EXPRS.size}", swatch position=${
   const product = makeProduct(['Color', 'Size'], [['Navy', 'Gold'], SIZES], {
     unavailable: ['Gold / 2XL'],
     prices: { 'Gold / L': 4900 },
+    images: {
+      Navy: 'https://cdn.example.com/products/bottle-navy.jpg?v=1',
+      Gold: 'https://cdn.example.com/products/bottle-gold.jpg?v=1',
+    },
   });
   const fx = runPicker(product);
   check('color x size: clicking a size keeps the selected color', () => {
@@ -286,6 +305,23 @@ console.log(`  data-option expressions: size="${EXPRS.size}", swatch position=${
   check('color x size: price and sticky bar follow the selected variant', () => {
     assertEqual(fx.byId['gk-price'].textContent, '$49.00', 'price element');
     assertEqual(fx.byId['gk-stickybar-meta'].textContent, 'Gold / L · $49.00', 'sticky bar meta');
+  });
+  check('color x size: gallery follows the selected variant image', () => {
+    if (!fx.mainImg.src.includes('bottle-gold.jpg') || !fx.mainImg.src.includes('width=900')) {
+      throw new Error(`main image should be the sized Gold variant image, got "${fx.mainImg.src}"`);
+    }
+    if (!fx.mainImg.srcset || !fx.mainImg.srcset.includes('width=1200 1200w')) {
+      throw new Error(`main image srcset missing responsive candidates, got "${fx.mainImg.srcset}"`);
+    }
+    const active = fx.thumbs.children.filter((t) => t.classList.contains('is-active'));
+    if (active.length !== 1 || !active[0].dataset.full.includes('bottle-gold')) {
+      throw new Error('exactly the Gold thumbnail should be active after selecting Gold');
+    }
+    clickValue(fx, 'Navy');
+    if (!fx.mainImg.src.includes('bottle-navy.jpg')) {
+      throw new Error(`main image should swap back to Navy, got "${fx.mainImg.src}"`);
+    }
+    clickValue(fx, 'Gold');
   });
   check('color x size: unavailable combination is marked on the size button', () => {
     const btn2xl = fx.form.querySelectorAll('.gk-pdp-size').find((b) => b.dataset.value === '2XL');
