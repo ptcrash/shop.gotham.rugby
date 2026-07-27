@@ -225,24 +225,48 @@
       });
     });
 
-    // Country/province linkage using Shopify's helper when available.
+    // Country/province linkage. Every <option> rendered by country_option_tags
+    // carries a data-provinces JSON array of [value, label] pairs, so the
+    // province list is populated entirely from the markup — no external
+    // Shopify JS (shopify_common.js is not loaded by this theme).
     function initProvince(countryId, provinceId, containerId) {
       var country = document.getElementById(countryId);
       var province = document.getElementById(provinceId);
       var container = document.getElementById(containerId);
       if (!country || !province) return;
-      if (window.Shopify && Shopify.CountryProvinceSelector) {
-        new Shopify.CountryProvinceSelector(countryId, provinceId, { hideElement: containerId });
-      } else {
-        // Fallback: no province data available — accept a free-text state.
+
+      function populate() {
+        var opt = country.options[country.selectedIndex];
+        var provinces = [];
+        try { provinces = JSON.parse((opt && opt.getAttribute('data-provinces')) || '[]'); } catch (e) {}
+        province.innerHTML = '';
+        if (!provinces.length) {
+          if (container) container.hidden = true;
+          return;
+        }
         if (container) container.hidden = false;
         var def = province.getAttribute('data-default');
-        if (def) {
-          var opt = document.createElement('option');
-          opt.value = def; opt.textContent = def; opt.selected = true;
-          province.appendChild(opt);
+        provinces.forEach(function (p) {
+          var o = document.createElement('option');
+          o.value = p[0];
+          o.textContent = p[1];
+          if (def && (p[0] === def || p[1] === def)) o.selected = true;
+          province.appendChild(o);
+        });
+      }
+
+      // Preselect the saved country (country_option_tags renders no selection).
+      var defCountry = country.getAttribute('data-default');
+      if (defCountry) {
+        for (var i = 0; i < country.options.length; i++) {
+          if (country.options[i].value === defCountry || country.options[i].textContent === defCountry) {
+            country.selectedIndex = i;
+            break;
+          }
         }
       }
+      country.addEventListener('change', populate);
+      populate();
     }
 
     initProvince('AddressCountryNew', 'AddressProvinceNew', 'AddressProvinceContainerNew');

@@ -249,7 +249,7 @@
           <span class="gk-stickybar-meta" id="gk-stickybar-meta">{{ current_variant.title }} · {{ current_variant.price | money }}</span>
         </span>
       </div>
-      <button type="submit" form="gk-add-form" class="gk-btn gk-btn-primary gk-stickybar-add">Add to cart</button>
+      <button type="submit" form="gk-add-form" class="gk-btn gk-btn-primary gk-stickybar-add{% unless product.available %} is-soldout{% endunless %}" {% unless product.available %}disabled{% endunless %}>{% if product.available %}Add to cart{% else %}Sold out{% endif %}</button>
     </div>
   </div>
 </div>
@@ -265,6 +265,7 @@
     var priceEl = document.getElementById('gk-price');
     var addPriceEl = document.getElementById('gk-add-price');
     var addBtn = form.querySelector('.gk-pdp-add');
+    var stickyBtn = document.querySelector('.gk-stickybar-add');
     var addLabel = document.getElementById('gk-add-price');
     var stickyMeta = document.getElementById('gk-stickybar-meta');
     var selected = {};
@@ -331,16 +332,30 @@
       });
     }
 
-    function setAddState(available) {
-      if (!addBtn) { return; }
-      addBtn.disabled = !available;
-      if (available) {
-        addBtn.classList.remove('is-soldout');
-      } else {
-        addBtn.classList.add('is-soldout');
-        var label = addBtn.querySelector('.gk-pdp-add-label');
-        if (label) { label.textContent = 'Sold out'; }
-        if (addLabel) { addLabel.textContent = ''; }
+    // The sticky bar's button submits the same form, so it must always mirror
+    // the main button — a live sticky button over a disabled main one is how
+    // a sold-out or stale variant gets ordered.
+    function setAddState(available, unavailableLabel) {
+      var offLabel = unavailableLabel || 'Sold out';
+      if (addBtn) {
+        addBtn.disabled = !available;
+        if (available) {
+          addBtn.classList.remove('is-soldout');
+        } else {
+          addBtn.classList.add('is-soldout');
+          var label = addBtn.querySelector('.gk-pdp-add-label');
+          if (label) { label.textContent = offLabel; }
+          if (addLabel) { addLabel.textContent = ''; }
+        }
+      }
+      if (stickyBtn) {
+        stickyBtn.disabled = !available;
+        stickyBtn.classList.toggle('is-soldout', !available);
+        if (available) {
+          stickyBtn.textContent = 'Add to cart';
+        } else {
+          stickyBtn.textContent = offLabel;
+        }
       }
     }
 
@@ -368,9 +383,10 @@
       refreshAvailability();
       var v = variantFor(selected);
       if (!v) {
-        setAddState(false);
-        var lbl = addBtn && addBtn.querySelector('.gk-pdp-add-label');
-        if (lbl) { lbl.textContent = 'Unavailable'; }
+        // No variant exists for this combination — clear the hidden id so a
+        // previously valid variant can never be submitted for it.
+        idInput.value = '';
+        setAddState(false, 'Unavailable');
         return;
       }
       idInput.value = v.id;
@@ -534,7 +550,7 @@
   .gk-pdp-swatch.is-unavailable { opacity: .4; }
   .gk-pdp-swatch.is-unavailable::after { content: ''; position: absolute; inset: 0; border-radius: 99px; }
   .gk-pdp-swatch { position: relative; }
-  .gk-pdp-add.is-soldout { opacity: .75; }
+  .gk-pdp-add.is-soldout, .gk-stickybar-add.is-soldout { opacity: .75; }
 
   /* App blocks (reviews, upsells, etc.) dropped in from the editor */
   .gk-pdp-appblocks { margin-top: 22px; display: flex; flex-direction: column; gap: 18px; }
@@ -555,8 +571,9 @@
   .gk-modal-body th { background: var(--paper-2); color: var(--navy-700); font-weight: 700; }
 
   .gk-pdp-buyrow { display: flex; gap: 12px; align-items: stretch; margin-bottom: 18px; }
-  .gk-qty { display: flex; align-items: center; border: 1.5px solid var(--border-strong); border-radius: 6px; overflow: hidden; background: #fff; }
-  .gk-qty-btn { width: 44px; height: 52px; border: 0; background: #fff; font-size: 20px; color: var(--navy-700); cursor: pointer; }
+  /* Base .gk-qty / .gk-qty-btn styling lives in assets/gotham-ds.css.liquid
+     (shared with the cart drawer and cart page) — only PDP sizing here. */
+  .gk-qty-btn { width: 44px; height: 52px; }
   .gk-qty input { width: 40px; text-align: center; border: 0; font: 600 15px var(--font-mono); color: var(--navy-700); -moz-appearance: textfield; background: #fff; align-self: stretch; }
   .gk-qty input::-webkit-outer-spin-button, .gk-qty input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .gk-pdp-add { flex: 1; justify-content: center; }
