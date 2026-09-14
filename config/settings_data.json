@@ -9,14 +9,22 @@
  */
 {
   "current": {
+    "use_custom_fonts": false,
+    "max_page_width": "110rem",
+    "min_page_margin": 20,
     "brand_navy": "#0D1D41",
     "brand_gold": "#FEC526",
     "brand_paper": "#FBF7EE",
     "background_color": "#FBF7EE",
     "foreground_color": "#0D1D41",
     "input_corner_radius": 6,
-    "max_page_width": "110rem",
-    "min_page_margin": 20,
-    "use_custom_fonts": false
+    "content_for_index": [],
+    "blocks": {
+      "6610233760104865948": {
+        "type": "shopify://apps/brevo-pushowl/blocks/pushowl-app-embed-3d2ff2b5/fa20c3ba-38bf-43e0-ba5c-431f6ae07d95",
+        "disabled": false,
+        "settings": {}
+      }
+    }
   }
 }
