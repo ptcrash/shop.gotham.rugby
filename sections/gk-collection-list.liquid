@@ -19,7 +19,7 @@
 %}
 
 {% if renderable > 0 or request.design_mode %}
-  <section class="gk-band gk-band-paper full-width">
+  <section class="gk-band gk-band-paper gk-collection-list full-width" style="--gk-tile-cols: {{ renderable | at_least: 1 | at_most: 4 }}">
     <div class="gk-band-inner">
       <div class="gk-band-head">
         <div>
@@ -90,6 +90,13 @@
 
 {% comment %} Tile styles (.gk-tiles / .gk-ctile / .gk-tile-*) live in gotham-ds.css (shared). {% endcomment %}
 
+{% stylesheet %}
+  .gk-collection-list .gk-tiles { grid-template-columns: repeat(var(--gk-tile-cols, 4), 1fr); }
+  @media (max-width: 860px) {
+    .gk-collection-list .gk-tiles { grid-template-columns: 1fr 1fr; }
+  }
+{% endstylesheet %}
+
 {% schema %}
 {
   "name": "Collection list",
@@ -125,10 +132,9 @@
   "presets": [{
     "name": "Collection list",
     "blocks": [
-      { "type": "tile", "settings": { "title": "Core Essentials", "count": "12 pieces", "style": "dark" } },
-      { "type": "tile", "settings": { "title": "Fan & Family", "count": "8 pieces", "style": "light" } },
-      { "type": "tile", "settings": { "title": "Accessories", "count": "9 pieces", "style": "stripes" } },
-      { "type": "tile", "settings": { "title": "Vintage · 25th", "count": "6 pieces", "style": "anniversary" } }
+      { "type": "tile", "settings": { "title": "All products", "url": "/collections/all", "style": "dark" } },
+      { "type": "tile", "settings": { "style": "light" } },
+      { "type": "tile", "settings": { "style": "stripes" } }
     ]
   }],
   "disabled_on": { "groups": ["header", "footer"] }

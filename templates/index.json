@@ -35,18 +35,17 @@
         "t1": {
           "type": "tile",
           "settings": {
-            "collection": "core-essentials",
-            "title": "Core Essentials",
+            "title": "All products",
             "count": "",
-            "url": "",
+            "url": "/collections/all",
             "style": "dark"
           }
         },
         "t2": {
           "type": "tile",
           "settings": {
-            "collection": "fan-family",
-            "title": "Fan & Family",
+            "collection": "best-sellers",
+            "title": "Best sellers",
             "count": "",
             "url": "",
             "style": "light"
@@ -61,23 +60,12 @@
             "url": "",
             "style": "stripes"
           }
-        },
-        "t4": {
-          "type": "tile",
-          "settings": {
-            "collection": "vintage",
-            "title": "Vintage · 25th",
-            "count": "",
-            "url": "",
-            "style": "anniversary"
-          }
         }
       },
       "block_order": [
         "t1",
         "t2",
-        "t3",
-        "t4"
+        "t3"
       ],
       "settings": {
         "eyebrow": "Shop by collection",
