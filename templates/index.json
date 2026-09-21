@@ -17,55 +17,140 @@
         "heading": "Bring the heat.",
         "heading_accent": "Own the summer.",
         "subheading": "The Gotham Hawaiian Shirt — featherlight, moisture-wicking, and UPF50+. Loud in all the right ways.",
+        "layout": "image_right",
+        "overlay_opacity": 0,
         "badge": "New Drop",
+        "text_color": "#ffffff",
+        "accent_color": "#fec526",
         "primary_label": "Shop the shirt",
+        "primary_url": "",
         "secondary_label": "Explore collection",
+        "secondary_url": "",
         "meta": ""
       }
     },
     "collection_list": {
       "type": "gk-collection-list",
       "blocks": {
-        "t1": { "type": "tile", "settings": { "collection": "core-essentials", "title": "Core Essentials", "style": "dark" } },
-        "t2": { "type": "tile", "settings": { "collection": "fan-family", "title": "Fan & Family", "style": "light" } },
-        "t3": { "type": "tile", "settings": { "collection": "accessories", "title": "Accessories", "style": "stripes" } },
-        "t4": { "type": "tile", "settings": { "collection": "vintage", "title": "Vintage · 25th", "style": "anniversary" } }
+        "t1": {
+          "type": "tile",
+          "settings": {
+            "title": "All products",
+            "count": "",
+            "url": "/collections/all",
+            "style": "dark"
+          }
+        },
+        "t2": {
+          "type": "tile",
+          "settings": {
+            "collection": "best-sellers",
+            "title": "Best sellers",
+            "count": "",
+            "url": "",
+            "style": "light"
+          }
+        },
+        "t3": {
+          "type": "tile",
+          "settings": {
+            "collection": "accessories",
+            "title": "Accessories",
+            "count": "",
+            "url": "",
+            "style": "stripes"
+          }
+        }
       },
-      "block_order": ["t1", "t2", "t3", "t4"],
-      "settings": { "eyebrow": "Shop by collection", "heading": "Find your kit", "link_label": "View all" }
+      "block_order": [
+        "t1",
+        "t2",
+        "t3"
+      ],
+      "settings": {
+        "eyebrow": "Shop by collection",
+        "heading": "Find your kit",
+        "link_label": "View all",
+        "link_url": ""
+      }
     },
     "mission": {
       "type": "gk-mission",
       "settings": {
         "heading": "Every order backs a club that made room for everyone on the pitch.",
-        "body": "Shopping The Gotham Storefront helps fund kit, pitch time, and travel for New York City's inclusive rugby club."
+        "body": "Shopping The Gotham Storefront helps fund kit, pitch time, and travel for New York City's inclusive rugby club.",
+        "show_rule": true,
+        "show_crest": true,
+        "background_color": "#0d1d41",
+        "heading_color": "#ffffff",
+        "body_color": "#c9d2e4"
       }
     },
     "featured": {
       "type": "gk-featured-products",
-      "settings": { "eyebrow": "Best-sellers", "heading": "Shop the favourites", "collection": "best-sellers", "count": 4, "link_label": "Shop all" }
+      "settings": {
+        "eyebrow": "Best-sellers",
+        "heading": "Shop the favourites",
+        "collection": "best-sellers",
+        "count": 4,
+        "link_label": "Shop all"
+      }
     },
     "community": {
       "type": "gk-community",
       "blocks": {
-        "c1": { "type": "tile", "settings": { "style": "photo" } },
-        "c2": { "type": "tile", "settings": { "style": "dark" } },
-        "c3": { "type": "tile", "settings": { "style": "stripes" } },
-        "c4": { "type": "tile", "settings": { "style": "gold", "label": "GK" } },
-        "c5": { "type": "tile", "settings": { "style": "light" } },
-        "c6": { "type": "tile", "settings": { "style": "ring" } }
+        "instafeed_app_block_Czpyyb": {
+          "type": "shopify://apps/instafeed/blocks/app-block/c447db20-095d-4a10-9725-b5977662c9d5",
+          "settings": {
+            "title": "",
+            "title_color": "",
+            "title_size_v2": 0,
+            "alignment": "center",
+            "instafeed_margin_top": 0,
+            "instafeed_margin_bottom": 0,
+            "instafeed_margin_sides": 0,
+            "show_instagram_link": false,
+            "link_alignment": "left",
+            "link_color": "#000000",
+            "background_color": "",
+            "feed_id": "",
+            "html_area": ""
+          }
+        }
       },
-      "block_order": ["c1", "c2", "c3", "c4", "c5", "c6"],
-      "settings": { "eyebrow": "Community", "heading": "On the pitch & in the feed", "handle": "@gothamrugby", "follow_url": "https://www.instagram.com/gothamrugby/" }
+      "block_order": [
+        "instafeed_app_block_Czpyyb"
+      ],
+      "settings": {
+        "eyebrow": "Community",
+        "heading": "On the pitch & in the feed",
+        "handle": "@gothamrugby",
+        "follow_url": "https://www.instagram.com/gothamrugby/",
+        "instagram_metaobject_type": "instagram"
+      }
     },
     "signup": {
       "type": "gk-email-signup",
       "settings": {
         "eyebrow": "Join the drop list",
         "heading": "First dibs on every drop.",
-        "body": "New kit and restocks - straight to your inbox. No spam, just the good stuff."
+        "body": "New kit and restocks - straight to your inbox. No spam, just the good stuff.",
+        "placeholder": "you@email.com",
+        "button_label": "Sign up",
+        "success_text": "Thanks — you're on the list.",
+        "show_stripe": true,
+        "show_crest": false,
+        "background_color": "#0d1d41",
+        "text_color": "#ffffff"
       }
     }
   },
-  "order": ["hero", "collection_list", "mission", "featured", "community", "signup"]
+  "order": [
+    "hero",
+    "collection_list",
+    "mission",
+    "featured",
+    "community",
+    "signup"
+  ]
 }
