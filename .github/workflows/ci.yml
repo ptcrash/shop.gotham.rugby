@@ -26,6 +26,12 @@ jobs:
         with:
           theme_root: "."
           token: ${{ github.token }}
+          # Pin to the last 4.x CLI: theme-check-action@v2 installs the latest
+          # @shopify/cli by default, and CLI 5.0 changed the `theme check
+          # --output json` shape, so the action's annotation step crashes with
+          # "TypeError: e.filter is not a function". Drop this once
+          # Shopify/theme-check-action#72 ships (tracked in issue #71).
+          version: "4.9.5"
 
   validate-json:
     name: Validate JSON (templates, config, locales, groups)
