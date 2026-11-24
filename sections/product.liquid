@@ -253,7 +253,7 @@
   {% endif %}
 
   {% comment %} ---- Sticky buy bar ---- {% endcomment %}
-  <div class="gk-stickybar full-width" id="gk-stickybar" hidden>
+  <div class="gk-stickybar" id="gk-stickybar" hidden>
     <div class="gk-band-inner gk-stickybar-inner">
       <div class="gk-stickybar-info">
         <span class="gk-stickybar-thumb">
@@ -609,7 +609,11 @@
 
   .gk-band-sunken { padding: 56px 50px; }
 
-  .gk-stickybar { position: sticky; bottom: 0; z-index: 30; background: var(--navy-700); border-top: 2px solid var(--gold-500); padding: 14px 50px; }
+  /* Fixed, not sticky: sticky only holds while its container (.gk-pdp) is on
+     screen, so the bar scrolled away over the recommendations/footer. The JS
+     toggles [hidden] once the main add button is in view. */
+  .gk-stickybar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--navy-700); border-top: 2px solid var(--gold-500); padding: 14px 50px calc(14px + env(safe-area-inset-bottom, 0px)); }
+  body:has(.gk-stickybar:not([hidden])) { padding-bottom: 84px; }
   .gk-stickybar-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
   .gk-stickybar-info { display: flex; align-items: center; gap: 14px; }
   .gk-stickybar-thumb { width: 46px; height: 46px; border-radius: 8px; overflow: hidden; background: var(--navy-600); display: grid; place-items: center; flex: none; }
@@ -623,7 +627,7 @@
     .gk-pdp-grid { grid-template-columns: 1fr; gap: 24px; }
     .gk-pdp-title { font-size: 1.7rem; }
     .gk-band-sunken { padding: 32px 18px; }
-    .gk-stickybar { padding: 12px 16px; }
+    .gk-stickybar { padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
     .gk-stickybar-thumb { display: none; }
   }
 {% endstylesheet %}

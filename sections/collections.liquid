@@ -30,6 +30,9 @@
         {% assign styles = 'dark,light,stripes,anniversary' | split: ',' %}
         {% for collection in collections %}
           {% liquid
+            if collection.products_count == 0
+              continue
+            endif
             assign idx = forloop.index0 | modulo: 4
             assign style = styles[idx]
             if collection.featured_image
@@ -90,7 +93,7 @@
   "name": "Collections list",
   "settings": [
     { "type": "text", "id": "heading", "label": "Heading", "default": "Collections" },
-    { "type": "text", "id": "subheading", "label": "Subheading", "default": "Every kit, sorted by squad — from Core Essentials to the 25 Years capsule." },
+    { "type": "text", "id": "subheading", "label": "Subheading", "default": "Every kit, sorted by squad." },
     {
       "type": "range",
       "id": "columns",
